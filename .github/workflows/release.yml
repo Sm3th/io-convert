@@ -1,0 +1,30 @@
+name: Release
+
+# Push a tag like v1.0.0 to build the Windows installer and attach it to a GitHub Release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      # The next step publishes the release. Without --publish never,
+      # electron-builder sees the tag and tries to publish too, which fails
+      # without a GH_TOKEN.
+      - run: npm run dist:win -- --publish never
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*Setup*.exe
+          generate_release_notes: true

@@ -1,0 +1,10 @@
+# Store text with LF in the repository, whatever the contributor's OS.
+* text=auto eol=lf
+
+# Binary assets: never touch line endings or try to diff them.
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.icns binary
+*.ttf  binary
+*.woff2 binary

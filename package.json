@@ -1,0 +1,141 @@
+{
+  "name": "io-convert",
+  "productName": "IO Convert",
+  "version": "1.0.0",
+  "description": "Private, offline file converter and PDF toolkit for the desktop.",
+  "keywords": [
+    "electron",
+    "file-converter",
+    "pdf",
+    "pdf-tools",
+    "offline",
+    "privacy",
+    "ffmpeg",
+    "ocr",
+    "desktop-app"
+  ],
+  "author": {
+    "name": "İsmet Organ",
+    "url": "https://github.com/sm3th"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/sm3th/io-convert",
+  "bugs": {
+    "url": "https://github.com/sm3th/io-convert/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sm3th/io-convert.git"
+  },
+  "main": "./out/main/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "postinstall": "node scripts/copy-pdfjs-assets.mjs",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "@cantoo/fontkit": "^2.0.12",
+    "@cantoo/pdf-lib": "^2.11.1",
+    "docx": "^9.16.0",
+    "ffmpeg-static": "^5.3.0",
+    "heic-convert": "^2.1.0",
+    "mammoth": "^1.13.0",
+    "marked": "^18.3.0",
+    "sharp": "^0.35.5",
+    "tesseract.js": "^7.0.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/instrument-sans": "^5.3.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^26.6.10",
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "lucide-react": "^1.80.0",
+    "motion": "^14.14.0",
+    "pdfjs-dist": "^6.5.438",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.2"
+  },
+  "build": {
+    "appId": "com.iosoftware.ioconvert",
+    "productName": "IO Convert",
+    "copyright": "© 2026 İsmet Organ · IO Software",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": ".",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/sharp/**",
+      "node_modules/@img/**",
+      "node_modules/ffmpeg-static/**",
+      "node_modules/tesseract.js/**",
+      "node_modules/tesseract.js-core/**"
+    ],
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "IO Convert"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility"
+    }
+  }
+}
