@@ -23,7 +23,7 @@ A private alternative to online converters: images, video, audio, documents, spr
 
 ## Download
 
-Get `IO Convert Setup x.y.z.exe` from the [latest release](https://github.com/sm3th/io-convert/releases/latest) and run it.
+Get `IO.Convert.Setup.x.y.z.exe` from the [latest release](https://github.com/sm3th/io-convert/releases/latest) and run it.
 
 The installer is not code-signed yet, so Windows SmartScreen may show *"Windows protected your PC"*. Choose **More info → Run anyway** to continue. macOS and Linux builds can be made from source (see [Getting started](#getting-started)).
 
