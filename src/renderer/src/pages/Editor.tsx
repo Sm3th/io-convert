@@ -18,7 +18,7 @@ import { uid } from '@/lib/format'
 import { useT } from '@/lib/settings'
 import { useDemoFiles, useOutDir, usePdfFile, useTask } from '@/lib/hooks'
 import { renderToCanvas, type PdfDoc } from '@/lib/pdfjs'
-import { Button, DropTarget, ErrorNote, IconButton, Modal, PageHeader, Panel, SavedFile, cx } from '@/components/ui'
+import { Button, DropTarget, ErrorNote, IconButton, Modal, PageHeader, Panel, SavedFile, cx, Spinner } from '@/components/ui'
 import { EmptyDrop, usePdfDoc } from '@/components/PdfTool'
 import { Thumb } from '@/components/Thumb'
 import { ColorRow } from './Tools'
@@ -294,7 +294,7 @@ export function Editor() {
 
   async function save() {
     const f = picker.file!
-    const out = await api.outputPath(f.path, 'pdf', outDir, ' — signed')
+    const out = await api.outputPath(f.path, 'pdf', outDir, ` — ${t('signed')}`)
     const annotations: Annotation[] = items
       .filter((i) => i.kind !== 'text' || i.text?.trim())
       .map(({ id: _id, url: _url, ...a }) => a) // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -324,7 +324,7 @@ export function Editor() {
               {t('Change file')}
             </Button>
             <Button variant="primary" disabled={!items.length || task.busy} onClick={save}>
-              {task.busy ? t('Working…') : t('Save PDF')}
+              {task.busy ? <><Spinner />{t('Working…')}</> : t('Save PDF')}
             </Button>
           </>
         }

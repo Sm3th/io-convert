@@ -47,6 +47,7 @@ export const api = {
   saveAs: (defaultPath: string, ext: string) => c<string | null>('dialog:save', defaultPath, ext),
   info: (paths: string[]) => c<FileInfo[]>('fs:info', paths),
   read: (path: string) => c<Uint8Array>('fs:read', path),
+  imagePreview: (path: string) => c<Uint8Array>('image:preview', path),
   outputPath: (input: string, ext: string, outDir?: string, suffix?: string) =>
     c<string>('fs:outputPath', input, ext, outDir, suffix),
   show: (path: string) => c<void>('shell:show', path),
@@ -62,8 +63,13 @@ export const api = {
   pdfInfo: (input: string, password?: string) => c<PdfInfo>('pdf:info', input, password),
   merge: (inputs: string[], output: string, passwords?: Record<string, string>) =>
     c<Saved>('pdf:merge', inputs, output, passwords),
-  split: (input: string, how: { mode: 'each' } | { mode: 'ranges'; ranges: string } | { mode: 'every'; n: number }, outDir?: string, pw?: string) =>
-    c<string[]>('pdf:split', input, how, outDir, pw),
+  split: (
+    input: string,
+    how: { mode: 'each' } | { mode: 'ranges'; ranges: string } | { mode: 'every'; n: number },
+    outDir?: string,
+    pw?: string,
+    words?: { page: string; pages: string }
+  ) => c<string[]>('pdf:split', input, how, outDir, pw, words),
   organize: (input: string, pages: OrganizePage[], output: string, pw?: string) =>
     c<Saved>('pdf:organize', input, pages, output, pw),
   compress: (input: string, level: CompressLevel, output: string, pw?: string) =>

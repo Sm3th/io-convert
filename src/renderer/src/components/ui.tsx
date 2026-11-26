@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import { FolderOpen, ExternalLink, CircleAlert, X } from 'lucide-react'
+import { FolderOpen, ExternalLink, CircleAlert, CircleCheck, LoaderCircle, X } from 'lucide-react'
 import { useT, useTe } from '@/lib/settings'
 import { api } from '@/lib/api'
 import { bytes, fileName } from '@/lib/format'
@@ -21,7 +21,7 @@ export function Button({
       {...rest}
       className={cx(
         'inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-        variant === 'primary' && 'bg-cyan text-ink hover:bg-[#8cc5ff] font-semibold',
+        variant === 'primary' && 'bg-cyan font-semibold text-ink shadow-[0_6px_20px_-8px_#6fb6ffaa] hover:bg-[#8cc5ff] active:translate-y-px disabled:translate-y-0 disabled:bg-raised disabled:text-dim disabled:opacity-100 disabled:shadow-none',
         variant === 'ghost' && 'border border-line bg-panel text-paper hover:border-line-strong hover:bg-raised',
         variant === 'quiet' && 'text-faded hover:bg-raised hover:text-paper',
         variant === 'danger' && 'text-coral hover:bg-coral/10',
@@ -149,7 +149,16 @@ export function Slider({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <input type="range" className="flex-1" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} />
+      <input
+        type="range"
+        className="flex-1"
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{ '--p': `${((value - min) / (max - min)) * 100}%` } as React.CSSProperties}
+      />
       <span className="w-12 text-right text-[13px] tabular-nums text-paper">
         {value}
         {suffix}
@@ -237,16 +246,21 @@ export function Panel({ children, className }: { children: ReactNode; className?
 export function SavedFile({ path, size, note }: { path: string; size?: number; note?: ReactNode }) {
   const t = useT()
   return (
-    <div className="rounded-xl border border-mint/30 bg-mint/[0.06] px-4 py-3">
-      <p className="truncate text-[13px] font-medium text-paper" title={path}>
-        {t('Saved {name}', { name: fileName(path) })}
-      </p>
-      <p className="text-xs text-faded">
-        {size !== undefined && bytes(size)}
-        {size !== undefined && note && ' · '}
-        {note}
-      </p>
-      <div className="-ml-2 mt-2 flex gap-1">
+    <div className="pop-in rounded-xl border border-mint/30 bg-mint/[0.06] px-4 py-3">
+      <div className="flex items-start gap-3">
+        <CircleCheck size={18} className="mt-0.5 shrink-0 text-mint" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-medium text-paper" title={path}>
+            {t('Saved {name}', { name: fileName(path) })}
+          </p>
+          <p className="text-xs text-faded">
+            {size !== undefined && bytes(size)}
+            {size !== undefined && note && ' · '}
+            {note}
+          </p>
+        </div>
+      </div>
+      <div className="ml-5 mt-2 flex gap-1">
         <Button variant="quiet" className="h-8 px-2" icon={<FolderOpen size={14} />} onClick={() => api.show(path)}>
           {t('Show in folder')}
         </Button>
@@ -258,11 +272,16 @@ export function SavedFile({ path, size, note }: { path: string; size?: number; n
   )
 }
 
+/** Small spinning indicator for buttons that are working. */
+export function Spinner({ size = 15 }: { size?: number }) {
+  return <LoaderCircle size={size} className="animate-spin motion-reduce:animate-none" />
+}
+
 export function ErrorNote({ message, onClose }: { message: string; onClose?: () => void }) {
   const t = useT()
   const te = useTe()
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-coral/40 bg-coral/[0.07] px-4 py-3 text-[13px] text-paper" role="alert">
+    <div className="pop-in flex items-start gap-3 rounded-xl border border-coral/40 bg-coral/[0.07] px-4 py-3 text-[13px] text-paper" role="alert">
       <CircleAlert size={16} className="mt-0.5 shrink-0 text-coral" />
       <p className="flex-1 select-text">{te(message)}</p>
       {onClose && (

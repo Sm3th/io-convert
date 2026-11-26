@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { mkdtemp, writeFile, readFile, stat } from 'fs/promises'
 import { existsSync } from 'fs'
 import { tmpdir } from 'os'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { execFile, execFileSync } from 'child_process'
 import sharp from 'sharp'
 import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib'
@@ -262,6 +262,12 @@ describe('robustness', () => {
     await expect(job).rejects.toThrow('Cancelled')
     expect(existsSync(out)).toBe(false)
   })
+  it('explains a video without sound instead of passing on the FFmpeg log', async () => {
+    // long.mp4 (made above) has a video stream only
+    const out = f('silent.mp3')
+    await expect(convertMedia('silent', f('long.mp4'), 'mp3', out, {}, () => {})).rejects.toThrow('This file has no audio track')
+    expect(existsSync(out)).toBe(false)
+  })
   it('prints page numbers in the UI language', async () => {
     const r = await pdf.pageNumbers(f('doc.pdf'), { position: 'bottom-center', format: 'page-n', start: 1, size: 10, pageWord: 'Sayfa' }, f('sayfa.pdf'))
     const doc = await getDocument({ data: new Uint8Array(await readFile(r.output)) }).promise
@@ -270,6 +276,13 @@ describe('robustness', () => {
     // (the fixture itself draws "Page 1" as a heading, so only the label is checked)
     expect(text).toContain('Sayfa 1')
     await doc.loadingTask.destroy()
+  })
+})
+
+describe('localized file names', () => {
+  it('names split files in the UI language', async () => {
+    const out = await pdf.split(f('doc.pdf'), { mode: 'ranges', ranges: '1, 2-3' }, dir, undefined, { page: 'sayfa', pages: 'sayfalar' })
+    expect(out.map((p) => basename(p))).toEqual(['doc — sayfa 1.pdf', 'doc — sayfalar 2-3.pdf'])
   })
 })
 

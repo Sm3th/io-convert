@@ -92,6 +92,16 @@ function toSeconds(t: string): number {
   return h * 3600 + m * 60 + s
 }
 
+/** Turns FFmpeg's log into a message people can act on. */
+export function explainFailure(log: string): string {
+  if (/does not contain any stream|Output file is empty|matches no streams/i.test(log)) return 'This file has no audio track'
+  if (/Invalid data found when processing input|moov atom not found|EBML header parsing failed/i.test(log)) {
+    return 'The file is damaged or is not a media file'
+  }
+  const lastLine = log.trim().split('\n').slice(-2).join(' ')
+  return `ffmpeg failed: ${lastLine}`
+}
+
 export function convertMedia(
   jobId: string,
   input: string,
@@ -129,8 +139,7 @@ export function convertMedia(
       running.delete(jobId)
       if (signal === 'SIGKILL') return fail(new Error('Cancelled'))
       if (code === 0) return resolve()
-      const lastLine = log.trim().split('\n').slice(-2).join(' ')
-      fail(new Error(`ffmpeg failed: ${lastLine}`))
+      fail(new Error(explainFailure(log)))
     })
   })
 }

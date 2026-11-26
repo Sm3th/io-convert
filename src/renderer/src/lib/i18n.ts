@@ -2,9 +2,25 @@
 // components stay legible; Turkish falls back to English if a key is missing.
 
 const tr: Record<string, string> = {
+  // output file name suffixes
+  page: 'sayfa',
+  pages: 'sayfalar',
+  signed: 'imzalı',
+  merged: 'birleştirilmiş',
+  organized: 'düzenlenmiş',
+  compressed: 'sıkıştırılmış',
+  watermarked: 'filigranlı',
+  numbered: 'numaralı',
+  protected: 'şifreli',
+  unlocked: 'şifresiz',
+  edited: 'güncellenmiş',
+  searchable: 'aranabilir',
   // navigation
   Convert: 'Dönüştür',
   'PDF tools': 'PDF araçları',
+  'Page tools': 'Sayfa işlemleri',
+  Content: 'İçerik',
+  Security: 'Güvenlik',
   'Organize pages': 'Sayfaları düzenle',
   Merge: 'Birleştir',
   Split: 'Böl',
@@ -21,6 +37,11 @@ const tr: Record<string, string> = {
   'Works fully offline': 'Tamamen çevrimdışı çalışır',
 
   // convert
+  Images: 'Görseller',
+  Video: 'Video',
+  Audio: 'Ses',
+  Documents: 'Belgeler',
+  Spreadsheets: 'Tablolar',
   'Drop files to convert': 'Dönüştürmek için dosyaları bırakın',
   'Images, video, audio, documents, spreadsheets and PDFs. Nothing is uploaded.':
     'Görsel, video, ses, belge, tablo ve PDF. Hiçbir şey internete yüklenmez.',
@@ -68,6 +89,12 @@ const tr: Record<string, string> = {
   '{n} pages': '{n} sayfa',
   'Saved {name}': '{name} kaydedildi',
   'Working…': 'İşleniyor…',
+  'Check for updates': 'Güncellemeleri denetle',
+  'Report a problem': 'Sorun bildir',
+  'Choose a PDF to get started': 'Başlamak için bir PDF seçin',
+  'Files stay on this computer': 'Dosyalar bu bilgisayardan çıkmaz',
+  Before: 'Önce',
+  After: 'Sonra',
   'This PDF is password protected': 'Bu PDF şifre korumalı',
   'Enter its password to continue.': 'Devam etmek için şifresini girin.',
   Password: 'Şifre',
@@ -248,7 +275,9 @@ const tr: Record<string, string> = {
   'OCR did not return a PDF page': 'Metin tanıma bir PDF sayfası döndürmedi',
   'Choose a PDF file.': 'Bir PDF dosyası seçin.',
   'This PDF needs a password.': 'Bu PDF için şifre gerekli.',
-  'Render failed': 'Sayfa çizilemedi'
+  'Render failed': 'Sayfa çizilemedi',
+  'This file has no audio track': 'Bu dosyada ses kanalı yok',
+  'The file is damaged or is not a media file': 'Dosya bozuk ya da bir medya dosyası değil'
 }
 
 // Errors that carry details, e.g. `Page range "9-" is outside 1–5`.

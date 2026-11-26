@@ -4,7 +4,7 @@ import { api } from '@/lib/api'
 import { uid } from '@/lib/format'
 import { useT } from '@/lib/settings'
 import { useDemoFiles, useOutDir, usePdfFile, useTask } from '@/lib/hooks'
-import { Button, DropTarget, ErrorNote, IconButton, PageHeader, Panel, SavedFile, cx } from '@/components/ui'
+import { Button, DropTarget, ErrorNote, IconButton, PageHeader, Panel, SavedFile, cx, Spinner } from '@/components/ui'
 import { EmptyDrop, usePdfDoc } from '@/components/PdfTool'
 import { Thumb } from '@/components/Thumb'
 
@@ -80,7 +80,7 @@ export function Organize() {
 
   async function save() {
     if (!picker.file) return
-    const out = await api.outputPath(picker.file.path, 'pdf', outDir, ' — organized')
+    const out = await api.outputPath(picker.file.path, 'pdf', outDir, ` — ${t('organized')}`)
     await task.run(() => api.organize(picker.file!.path, items.map(({ index, rotate }) => ({ index, rotate })), out, picker.file!.password))
   }
 
@@ -99,7 +99,7 @@ export function Organize() {
                 {t('Change file')}
               </Button>
               <Button variant="primary" onClick={save} disabled={task.busy || !items.length}>
-                {task.busy ? t('Working…') : t('Save PDF')}
+                {task.busy ? <><Spinner />{t('Working…')}</> : t('Save PDF')}
               </Button>
             </>
           )

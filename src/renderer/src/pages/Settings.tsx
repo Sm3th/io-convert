@@ -5,6 +5,8 @@ import { useSettings } from '@/lib/settings'
 import { Button, Field, PageHeader, Panel, Segmented } from '@/components/ui'
 import { Logo } from '@/components/Logo'
 
+const REPO = 'https://github.com/Sm3th/io-convert'
+
 export function Settings() {
   const { t, lang, outDir, set } = useSettings()
   const [env, setEnv] = useState<AppEnv | null>(null)
@@ -64,10 +66,18 @@ export function Settings() {
         </Panel>
 
         <Panel className="flex items-center gap-4 p-6">
-          <Logo size={40} />
-          <div>
+          <Logo size={44} />
+          <div className="flex-1">
             <p className="font-display text-lg font-semibold">IO Convert {env && <span className="font-normal text-faded">v{env.version}</span>}</p>
             <p className="text-[13px] text-faded">© IO Software · İsmet Organ · MIT</p>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 text-[13px]">
+            <a href={`${REPO}/releases/latest`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-cyan hover:underline">
+              {t('Check for updates')} <ExternalLink size={13} />
+            </a>
+            <a href={`${REPO}/issues/new/choose`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-faded hover:text-paper hover:underline">
+              {t('Report a problem')} <ExternalLink size={13} />
+            </a>
           </div>
         </Panel>
       </div>

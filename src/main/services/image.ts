@@ -107,3 +107,13 @@ export async function encodeRendered(png: Uint8Array, target: string, output: st
 function clamp(n: number, a: number, b: number): number {
   return Math.max(a, Math.min(b, n))
 }
+
+/** Small PNG thumbnail for images the renderer cannot display itself (HEIC, TIFF). */
+export async function imagePreview(input: string, size = 96): Promise<Uint8Array> {
+  const png = await (await loadImage(input))
+    .rotate()
+    .resize({ width: size, height: size, fit: 'cover' })
+    .png()
+    .toBuffer()
+  return new Uint8Array(png)
+}

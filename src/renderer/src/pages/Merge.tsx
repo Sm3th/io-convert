@@ -4,7 +4,7 @@ import { api } from '@/lib/api'
 import { bytes, fileName, uid } from '@/lib/format'
 import { useT, useTe } from '@/lib/settings'
 import { useAskPassword, useDemoFiles, useOutDir, useTask } from '@/lib/hooks'
-import { Button, DropTarget, ErrorNote, Field, IconButton, PageHeader, Panel, SavedFile, Segmented, cx } from '@/components/ui'
+import { Button, DropTarget, ErrorNote, Field, IconButton, PageHeader, Panel, SavedFile, Segmented, cx, Spinner } from '@/components/ui'
 import { EmptyDrop } from '@/components/PdfTool'
 
 interface Entry {
@@ -23,13 +23,19 @@ function ImagePreview({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null)
   useEffect(() => {
     const ext = path.split('.').pop()!.toLowerCase()
-    if (!PREVIEWABLE.has(ext)) return
+    // Formats Chromium cannot show (HEIC, TIFF) get a thumbnail from the main process.
+    const direct = PREVIEWABLE.has(ext)
     let u: string | null = null
-    api.read(path).then((b) => {
-      u = URL.createObjectURL(new Blob([b as BlobPart], { type: MIME[ext] ?? `image/${ext}` }))
-      setUrl(u)
-    })
+    let alive = true
+    ;(direct ? api.read(path) : api.imagePreview(path))
+      .then((b) => {
+        if (!alive) return
+        u = URL.createObjectURL(new Blob([b as BlobPart], { type: direct ? (MIME[ext] ?? `image/${ext}`) : 'image/png' }))
+        setUrl(u)
+      })
+      .catch(() => {})
     return () => {
+      alive = false
       if (u) URL.revokeObjectURL(u)
     }
   }, [path])
@@ -201,7 +207,7 @@ export function Merge() {
   const total = list.entries.reduce((n, e) => n + (e.pages ?? 0), 0)
   async function run() {
     const first = list.entries[0].path
-    const out = await api.outputPath(first, 'pdf', outDir, ' — merged')
+    const out = await api.outputPath(first, 'pdf', outDir, ` — ${t('merged')}`)
     const pw = Object.fromEntries(list.entries.filter((e) => e.password).map((e) => [e.path, e.password!]))
     await task.run(() => api.merge(list.entries.map((e) => e.path), out, pw))
   }
@@ -218,7 +224,7 @@ export function Merge() {
             <p className="text-[13px] text-faded">{t('Pages')}</p>
           </div>
           <Button variant="primary" className="h-10 w-full" disabled={list.entries.length < 2 || task.busy} onClick={run}>
-            {task.busy ? t('Working…') : t('Merge PDFs')}
+            {task.busy ? <><Spinner />{t('Working…')}</> : t('Merge PDFs')}
           </Button>
           {list.entries.length < 2 && <p className="text-xs text-dim">{t('Add at least two PDFs')}</p>}
           {task.error && <ErrorNote message={task.error} onClose={task.clear} />}
@@ -251,7 +257,7 @@ export function ImagesToPdf() {
             <Segmented value={fit} onChange={setFit} options={[{ value: 'a4', label: t('A4 with margins') }, { value: 'image', label: t('Match each image') }]} />
           </Field>
           <Button variant="primary" className="h-10 w-full" disabled={!list.entries.length || task.busy} onClick={run}>
-            {task.busy ? t('Working…') : t('Create PDF')}
+            {task.busy ? <><Spinner />{t('Working…')}</> : t('Create PDF')}
           </Button>
           {task.error && <ErrorNote message={task.error} onClose={task.clear} />}
           {task.result && <SavedFile path={task.result.output} size={task.result.size} />}

@@ -37,7 +37,9 @@ export default function App() {
         <div className="min-h-0 flex-1 px-9 pb-7">
           {/* keyed by page: switching tools also clears a crashed screen */}
           <ErrorBoundary key={page}>
-            <Page />
+            <div className="page-in h-full">
+              <Page />
+            </div>
           </ErrorBoundary>
         </div>
       </main>

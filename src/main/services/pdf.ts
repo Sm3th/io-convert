@@ -161,7 +161,13 @@ export function parseRanges(spec: string, total: number): number[][] {
 
 export type SplitMode = { mode: 'each' } | { mode: 'ranges'; ranges: string } | { mode: 'every'; n: number }
 
-export async function split(input: string, how: SplitMode, outDir?: string, password?: string) {
+/** Words used in split file names, so they follow the UI language. */
+export interface SplitWords {
+  page: string
+  pages: string
+}
+
+export async function split(input: string, how: SplitMode, outDir?: string, password?: string, words: SplitWords = { page: 'page', pages: 'pages' }) {
   const src = await load(input, password)
   const total = src.getPageCount()
   let groups: number[][]
@@ -177,8 +183,8 @@ export async function split(input: string, how: SplitMode, outDir?: string, pass
     const doc = await PDFDocument.create()
     const pages = await doc.copyPages(src, g)
     pages.forEach((p) => doc.addPage(p))
-    const label = g.length === 1 ? `${g[0] + 1}` : `${g[0] + 1}-${g[g.length - 1] + 1}`
-    const out = outputPath(input, 'pdf', outDir, ` — pages ${label}`)
+    const label = g.length === 1 ? `${words.page} ${g[0] + 1}` : `${words.pages} ${g[0] + 1}-${g[g.length - 1] + 1}`
+    const out = outputPath(input, 'pdf', outDir, ` — ${label}`)
     await save(doc, out)
     outputs.push(out)
   }

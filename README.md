@@ -137,7 +137,7 @@ src/
 │  ├─ components/      UI kit, PDF tool layout, thumbnails
 │  └─ lib/             PDF.js helpers, i18n (EN/TR), hooks
 └─ shared/formats.ts   format matrix and IPC types, used by both sides
-tests/                 end-to-end service tests and i18n tests (45)
+tests/                 end-to-end service tests and i18n tests (47)
 ```
 
 ## Design

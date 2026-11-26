@@ -33,17 +33,20 @@ export function usePdfDoc(file: PickedPdf | null): PdfDoc | null {
 }
 
 export function EmptyDrop({ onFiles, onPick, title, button, icon }: { onFiles: (p: string[]) => void; onPick: () => void; title: string; button: string; icon?: ReactNode }) {
+  const t = useT()
+  const hint = t('Files stay on this computer')
   return (
     <DropTarget onFiles={onFiles} className="h-full rounded-[var(--radius-card)] transition-shadow" activeClassName="ring-2 ring-cyan">
       <button
         onClick={onPick}
-        className="flex h-full min-h-[340px] w-full flex-col items-center justify-center gap-4 rounded-[var(--radius-card)] border border-dashed border-line-strong bg-panel/40 transition-colors hover:border-cyan/60 hover:bg-panel/70"
+        className="group flex h-full min-h-[340px] w-full flex-col items-center justify-center gap-4 rounded-[var(--radius-card)] border border-dashed border-line-strong bg-[radial-gradient(90%_70%_at_50%_0%,#16306355_0%,transparent_70%)] bg-panel/40 transition-colors hover:border-cyan/60 hover:bg-panel/70"
       >
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-raised text-cyan">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-raised text-cyan transition-transform duration-300 group-hover:-translate-y-0.5">
           {icon ?? <FileText size={24} strokeWidth={1.6} />}
         </span>
         <span className="font-display text-2xl font-medium">{title}</span>
-        <span className="inline-flex h-9 items-center rounded-lg bg-cyan px-4 text-[13px] font-semibold text-ink">{button}</span>
+        <span className="inline-flex h-9 items-center rounded-lg bg-cyan px-4 text-[13px] font-semibold text-ink shadow-[0_6px_20px_-8px_#6fb6ffaa]">{button}</span>
+        <span className="text-xs text-dim">{hint}</span>
       </button>
     </DropTarget>
   )
@@ -67,7 +70,7 @@ export function FileSummary({ file, doc, onChange, showPages = 8 }: { file: Pick
         </Button>
       </div>
       {showPages > 0 && (
-      <div className="flex gap-4 overflow-x-auto bg-ink/40 px-5 py-5">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(118px,1fr))] justify-items-center gap-x-4 gap-y-5 bg-ink/40 px-5 py-5">
         {doc ? (
           Array.from({ length: n }, (_, i) => (
             <div key={i} className="shrink-0 text-center">
@@ -79,7 +82,7 @@ export function FileSummary({ file, doc, onChange, showPages = 8 }: { file: Pick
           <div className="h-[190px]" />
         )}
         {file.info.pages > n && (
-          <div className="flex w-[118px] shrink-0 items-center justify-center text-xs text-dim">+{file.info.pages - n}</div>
+          <div className="flex h-[167px] w-[118px] items-center justify-center rounded-[3px] border border-dashed border-line-strong font-display text-lg text-faded">+{file.info.pages - n}</div>
         )}
       </div>
       )}
@@ -138,6 +141,7 @@ export function PdfTool({
             {options}
             <div className="space-y-3 pt-1">
               {action}
+              {!picker.file && <p className="text-center text-xs text-dim">{t('Choose a PDF to get started')}</p>}
               {error && <ErrorNote message={error} onClose={onClearError} />}
               {result}
             </div>

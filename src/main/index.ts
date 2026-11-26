@@ -5,12 +5,16 @@ import { categoryOf, extOf, type ConvertRequest, type FileInfo } from '@shared/f
 import { convert } from './services/convert'
 import { cancelMedia } from './services/media'
 import { setHtmlPrinter, findOffice, textPagesToDocx, textPagesToHtml } from './services/document'
-import { imagesToPdf, encodeRendered } from './services/image'
+import { imagesToPdf, encodeRendered, imagePreview } from './services/image'
 import { configureOcr, ocrToPdf, ocrToText, shutdownOcr } from './services/ocr'
 import { outputPath, uniquePath } from './services/paths'
 import * as pdf from './services/pdf'
 
 const isDev = !app.isPackaged && !!process.env['ELECTRON_RENDERER_URL']
+const shotMode = !!process.env['IO_SHOT_PLAN'] && !app.isPackaged
+// Screenshot runs get their own profile, so they neither touch the user's
+// settings nor collide with a copy of the app that is already open.
+if (shotMode) app.setPath('userData', join(app.getPath('temp'), 'io-convert-shots'))
 const resourcesDir = app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources')
 
 pdf.setFontDir(join(resourcesDir, 'fonts'))
@@ -64,7 +68,7 @@ function createWindow(): void {
     e.preventDefault()
     if (/^https?:/.test(url)) void shell.openExternal(url)
   })
-  if (process.env['IO_SHOT_PLAN'] && !app.isPackaged) void runScreenshots(mainWindow)
+  if (shotMode) void runScreenshots(mainWindow)
   else if (isDev) void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']!)
   else void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
 }
@@ -90,8 +94,15 @@ async function runScreenshots(win: BrowserWindow): Promise<void> {
       await win.webContents.executeJavaScript(s.script)
       await new Promise((r) => setTimeout(r, s.after ?? 900))
     }
-    const img = await win.webContents.capturePage()
-    await writeFile(join(plan.dir, `${s.name}.png`), img.toPNG())
+    // capturePage never settles while the window is minimized, so bring it
+    // back first and give up on a shot rather than hang the whole run.
+    if (win.isMinimized()) win.restore()
+    win.showInactive()
+    const img = await Promise.race([
+      win.webContents.capturePage(),
+      new Promise<null>((r) => setTimeout(() => r(null), 10000))
+    ])
+    if (img) await writeFile(join(plan.dir, `${s.name}.png`), img.toPNG())
   }
   app.quit()
 }
@@ -158,6 +169,7 @@ function registerIpc(): void {
     return out
   })
   handle('fs:read', async (_e, path: string) => new Uint8Array(await readFile(path)))
+  handle('image:preview', (_e, path: string) => imagePreview(path))
   handle('fs:outputPath', (_e, input: string, ext: string, outDir?: string, suffix?: string) =>
     outputPath(input, ext, outDir, suffix)
   )
@@ -189,7 +201,9 @@ function registerIpc(): void {
   // PDF tools
   handle('pdf:info', (_e, input: string, password?: string) => pdf.info(input, password))
   handle('pdf:merge', (_e, inputs: string[], output: string, pw?: Record<string, string>) => pdf.merge(inputs, output, pw))
-  handle('pdf:split', (_e, input: string, how: pdf.SplitMode, outDir?: string, pw?: string) => pdf.split(input, how, outDir, pw))
+  handle('pdf:split', (_e, input: string, how: pdf.SplitMode, outDir?: string, pw?: string, words?: pdf.SplitWords) =>
+    pdf.split(input, how, outDir, pw, words)
+  )
   handle('pdf:organize', (_e, input: string, pages, output: string, pw?: string) => pdf.organize(input, pages, output, pw))
   handle('pdf:compress', (_e, input: string, level, output: string, pw?: string) => pdf.compress(input, level, output, pw))
   handle('pdf:protect', (_e, input: string, o: pdf.ProtectOptions, output: string, pw?: string) => pdf.protect(input, o, output, pw))

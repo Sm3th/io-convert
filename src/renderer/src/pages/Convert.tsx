@@ -27,7 +27,7 @@ import {
   type FileInfo
 } from '@shared/formats'
 import { api, isPasswordError } from '@/lib/api'
-import { bytes, dirName, uid } from '@/lib/format'
+import { bytes, dirName, fileName, uid } from '@/lib/format'
 import { useSettings, useT, useTe } from '@/lib/settings'
 import { useAskPassword, useDemoFiles, useOutDir } from '@/lib/hooks'
 import { extractLines, openPdf, renderToPng } from '@/lib/pdfjs'
@@ -79,6 +79,15 @@ const ROUTES: [string, string][] = [
   ['XLSX', 'CSV'],
   ['PNG', 'WebP'],
   ['Markdown', 'Word']
+]
+
+const CATEGORY_CHIPS: [Category, string, string][] = [
+  ['image', 'Images', 'HEIC · PNG · WebP'],
+  ['video', 'Video', 'MP4 · MOV · MKV'],
+  ['audio', 'Audio', 'MP3 · WAV · FLAC'],
+  ['document', 'Documents', 'DOCX · MD · HTML'],
+  ['sheet', 'Spreadsheets', 'XLSX · CSV · JSON'],
+  ['pdf', 'PDF', '→ PNG · DOCX · TXT']
 ]
 
 /** The one moving thing in the app: format routes cycling in large type. */
@@ -185,7 +194,7 @@ export function Convert() {
         for (let i = 0; i < doc.numPages; i++) {
           if (cancelled.current) throw new Error('Cancelled')
           const png = await renderToPng(doc, i, opts.dpi)
-          const suffix = doc.numPages > 1 ? ` — page ${i + 1}` : ''
+          const suffix = doc.numPages > 1 ? ` — ${t('page')} ${i + 1}` : ''
           const out = await api.outputPath(job.file.path, job.target, outDirOpt, suffix)
           const r = await api.saveRender(png, job.target, out, opts.quality)
           outputs.push(r.output)
@@ -249,6 +258,13 @@ export function Convert() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k).slice(0, 10)
   }, [jobs])
   const done = jobs.filter((j) => j.status === 'done').length
+  // Overall progress of the current run (jobs that left the "ready" state).
+  const inRun = jobs.filter((j) => j.status !== 'ready')
+  const overall = inRun.length ? inRun.reduce((n, j) => n + (j.status === 'done' || j.status === 'error' ? 100 : j.progress), 0) / inRun.length : 0
+  const activeTarget = (tg: string) => {
+    const able = jobs.filter((j) => targetsFor(j.file.ext).includes(tg))
+    return able.length > 0 && able.every((j) => j.target === tg)
+  }
   const pendingCount = jobs.filter((j) => j.status === 'ready' || j.status === 'error').length
   const hasVideo = cats.has('video')
   const wantsOcr = jobs.some((j) => j.file.category === 'image' && j.target === 'txt')
@@ -259,8 +275,10 @@ export function Convert() {
   // ------------------------------------------------------------- empty state
   if (!jobs.length) {
     return (
-      <DropTarget onFiles={add} className="h-full rounded-[22px] transition-shadow" activeClassName="ring-2 ring-cyan">
+      <DropTarget onFiles={add} className="group/drop h-full rounded-[22px] transition-shadow" activeClassName="is-over ring-2 ring-cyan">
         <div className="relative flex h-full flex-col items-center justify-center overflow-hidden rounded-[22px] border border-line bg-[radial-gradient(120%_80%_at_50%_0%,#163063_0%,#0d1830_60%)] px-10">
+          {/* dashed frame that lights up while files hover over the window */}
+          <div className="pointer-events-none absolute inset-4 rounded-[16px] border-2 border-dashed border-transparent transition-colors group-[.is-over]/drop:border-cyan/50" />
           <RouteTicker />
           <h1 className="mt-10 font-display text-[30px] font-semibold tracking-[-0.02em]">{t('Drop files to convert')}</h1>
           <p className="mt-2 max-w-[52ch] text-center text-faded">
@@ -269,6 +287,18 @@ export function Convert() {
           <Button variant="primary" className="mt-7 h-10 px-5" icon={<Plus size={16} />} onClick={pick}>
             {t('Choose files')}
           </Button>
+          <ul className="mt-10 flex flex-wrap justify-center gap-2">
+            {CATEGORY_CHIPS.map(([cat, label, sample]) => {
+              const Icon = ICONS[cat]
+              return (
+                <li key={cat} className="flex items-center gap-2 rounded-full border border-line bg-panel/60 py-1.5 pl-2.5 pr-3 text-xs text-faded">
+                  <Icon size={13} className="text-cyan" />
+                  <span className="font-medium text-paper">{t(label)}</span>
+                  <span className="text-dim">{sample}</span>
+                </li>
+              )
+            })}
+          </ul>
           {rejected.length > 0 && (
             <div className="mt-6 w-[420px]">
               <ErrorNote message={`${t('Unsupported file')}: ${rejected.join(', ')}`} onClose={() => setRejected([])} />
@@ -285,7 +315,15 @@ export function Convert() {
       <header className="flex items-end justify-between gap-6 pb-5">
         <div>
           <h1 className="font-display text-[34px] font-semibold leading-tight tracking-[-0.02em]">{t('Convert')}</h1>
-          <p className="mt-1 text-faded">{t('{n} files · {done} done', { n: jobs.length, done })}</p>
+          <div className="mt-1 flex h-6 items-center gap-4">
+            <p className="text-faded">{t('{n} files · {done} done', { n: jobs.length, done })}</p>
+            {running && (
+              <div className="flex w-[220px] items-center gap-3">
+                <Progress value={overall} state="running" />
+                <span className="w-9 text-right text-xs tabular-nums text-faded">{Math.round(overall)}%</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
           <Button icon={<Plus size={15} />} onClick={pick} disabled={running}>
@@ -317,7 +355,10 @@ export function Convert() {
                     onClick={() =>
                       setJobs((js) => js.map((j) => (targetsFor(j.file.ext).includes(tg) && j.status !== 'running' ? { ...j, target: tg, status: j.status === 'done' ? 'ready' : j.status } : j)))
                     }
-                    className="h-7 rounded-full border border-line px-3 text-xs font-medium text-faded transition-colors hover:border-cyan hover:text-cyan disabled:opacity-40"
+                    className={cx(
+                      'h-7 rounded-full border px-3 text-xs font-medium transition-colors disabled:opacity-40',
+                      activeTarget(tg) ? 'border-cyan/60 bg-cyan/10 text-cyan' : 'border-line text-faded hover:border-cyan hover:text-cyan'
+                    )}
                   >
                     {t(labelFor(tg))}
                   </button>
@@ -492,8 +533,10 @@ function JobRow({
               {te(job.error ?? '')}
             </p>
           ) : job.status === 'done' ? (
-            <p className="truncate text-xs text-faded">
-              {job.outputs.length > 1 ? `${t('{n} files', { n: job.outputs.length })} · ${dirName(job.outputs[0])}` : job.outputs[0]}
+            <p className="truncate text-xs text-faded" title={job.outputs.length > 1 ? dirName(job.outputs[0]) : job.outputs[0]}>
+              <span className="text-mint">{t('Done')}</span>
+              {' · '}
+              {job.outputs.length > 1 ? `${t('{n} files', { n: job.outputs.length })} · ${fileName(dirName(job.outputs[0]))}` : fileName(job.outputs[0])}
             </p>
           ) : officeMissing ? (
             <p className="text-xs text-amber">{t('Needs LibreOffice')}</p>

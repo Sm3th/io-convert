@@ -3,7 +3,7 @@ import { ScanText, X, Plus } from 'lucide-react'
 import { api, isPasswordError } from '@/lib/api'
 import { bytes, fileName, uid } from '@/lib/format'
 import { useT } from '@/lib/settings'
-import { useAskPassword, useOutDir, usePdfFile, useTask, type PickedPdf } from '@/lib/hooks'
+import { useAskPassword, useDemoFiles, useOutDir, usePdfFile, useTask, type PickedPdf } from '@/lib/hooks'
 import { openPdf, renderToPng } from '@/lib/pdfjs'
 import {
   Button,
@@ -20,7 +20,8 @@ import {
   Select,
   Slider,
   inputCls,
-  cx
+  cx,
+  Spinner
 } from '@/components/ui'
 import { EmptyDrop, FileSummary, PdfTool, usePdfDoc } from '@/components/PdfTool'
 import { Thumb } from '@/components/Thumb'
@@ -33,7 +34,7 @@ function ActionButton({ busy, disabled, onClick, children }: { busy: boolean; di
   const t = useT()
   return (
     <Button variant="primary" className="h-10 w-full" disabled={busy || disabled} onClick={onClick}>
-      {busy ? t('Working…') : children}
+      {busy ? <><Spinner />{t('Working…')}</> : children}
     </Button>
   )
 }
@@ -78,7 +79,8 @@ export function Split() {
         picker.file!.path,
         mode === 'ranges' ? { mode, ranges } : mode === 'every' ? { mode, n } : { mode },
         outDir,
-        picker.file!.password
+        picker.file!.password,
+        { page: t('page'), pages: t('pages') }
       )
     )
   return (
@@ -136,7 +138,7 @@ export function Compress() {
   const [level, setLevel] = useState<'light' | 'balanced' | 'strong'>('balanced')
   const hints = { light: 'Keeps photos sharp. Small savings.', balanced: 'Good for email and sharing.', strong: 'Smallest file. Photos get softer.' }
   async function run() {
-    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ' — compressed')
+    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ` — ${t('compressed')}`)
     await task.run(() => api.compress(picker.file!.path, level, out, picker.file!.password))
   }
   const r = task.result
@@ -169,12 +171,25 @@ export function Compress() {
       result={
         r && (
           <div className="space-y-3">
-            <div className="rounded-xl border border-line bg-ink/50 p-4">
-              <p className="font-display text-3xl font-semibold text-cyan">{pct > 0 ? t('{pct}% smaller', { pct }) : t('Already as small as it gets')}</p>
-              <p className="mt-1 text-[13px] text-faded">{t('{before} to {after}', { before: bytes(r.before), after: bytes(r.after) })}</p>
-              <div className="mt-3 space-y-1.5">
-                <div className="h-2 rounded-full bg-line" />
-                <div className="h-2 rounded-full bg-cyan" style={{ width: `${Math.max(3, (r.after / r.before) * 100)}%` }} />
+            <div className="pop-in rounded-xl border border-line bg-ink/50 p-4">
+              <p className={cx('font-display font-semibold', pct > 0 ? 'text-3xl text-cyan' : 'text-xl text-paper')}>
+                {pct > 0 ? t('{pct}% smaller', { pct }) : t('Already as small as it gets')}
+              </p>
+              <div className="mt-4 space-y-2.5 text-xs">
+                {[
+                  [t('Before'), r.before, 'bg-line-strong'],
+                  [t('After'), r.after, 'bg-cyan']
+                ].map(([label, size, color]) => (
+                  <div key={label as string}>
+                    <div className="mb-1 flex justify-between text-faded">
+                      <span>{label}</span>
+                      <span className="tabular-nums text-paper">{bytes(size as number)}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-ink">
+                      <div className={cx('h-full rounded-full transition-[width] duration-700', color as string)} style={{ width: `${Math.max(3, ((size as number) / r.before) * 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             <SavedFile path={r.output} size={r.after} />
@@ -194,7 +209,7 @@ export function Watermark() {
   const [o, setO] = useState<WatermarkOptions>({ text: t('CONFIDENTIAL'), opacity: 18, size: 11, color: '#d22f2f', diagonal: true })
   const set = (p: Partial<WatermarkOptions>) => setO((x) => ({ ...x, ...p }))
   async function run() {
-    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ' — watermarked')
+    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ` — ${t('watermarked')}`)
     await task.run(() => api.watermark(picker.file!.path, o, out, picker.file!.password))
   }
   return (
@@ -284,7 +299,7 @@ export function PageNumbers() {
   const pageWord = t('Page')
   const label = o.format === 'n-of-total' ? `${o.start} / ${total}` : o.format === 'page-n' ? `${pageWord} ${o.start}` : `${o.start}`
   async function run() {
-    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ' — numbered')
+    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ` — ${t('numbered')}`)
     await task.run(() => api.pageNumbers(picker.file!.path, { ...o, pageWord }, out, picker.file!.password))
   }
   const pos: Record<PageNumberOptions['position'], string> = {
@@ -366,7 +381,7 @@ export function Protect() {
   const [perm, setPerm] = useState({ allowPrinting: true, allowCopying: false, allowEditing: false })
   const mismatch = pw2.length > 0 && pw !== pw2
   async function run() {
-    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ' — protected')
+    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ` — ${t('protected')}`)
     await task.run(() => api.protect(picker.file!.path, { userPassword: pw, ...perm }, out, picker.file!.password))
   }
   return (
@@ -410,7 +425,7 @@ export function Unlock() {
   const task = useTask<Saved>()
   async function run() {
     const f = picker.file!
-    const out = await api.outputPath(f.path, 'pdf', outDir, ' — unlocked')
+    const out = await api.outputPath(f.path, 'pdf', outDir, ` — ${t('unlocked')}`)
     await task.run(() => api.unlock(f.path, f.password ?? '', out))
   }
   const notLocked = picker.file && !picker.file.password
@@ -446,7 +461,7 @@ export function Properties() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picker.file])
   async function run() {
-    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ' — edited')
+    const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ` — ${t('edited')}`)
     await task.run(() => api.metadata(picker.file!.path, m, out, picker.file!.password))
   }
   const field = (k: keyof typeof m, label: string, hint?: string) => (
@@ -521,6 +536,7 @@ export function Ocr() {
     const infos = (await api.info(paths)).filter((f) => OCR_EXTS.includes(f.ext))
     setFiles((fs) => [...fs, ...infos.map((f) => ({ key: uid(), path: f.path, size: f.size }))])
   }
+  useDemoFiles((p) => void add(p))
   async function pick() {
     const p = await api.openFiles([{ name: t('Images or PDFs'), extensions: OCR_EXTS }])
     if (p.length) await add(p)
@@ -556,7 +572,7 @@ export function Ocr() {
         void doc.loadingTask.destroy()
       }
       setStage('')
-      const out = await api.outputPath(files[0].path, target, outDir, target === 'pdf' ? ' — searchable' : '')
+      const out = await api.outputPath(files[0].path, target, outDir, target === 'pdf' ? ` — ${t('searchable')}` : '')
       return api.ocr(jobId, inputs, langs, target, out)
     })
   }
