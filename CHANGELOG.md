@@ -6,6 +6,10 @@ All notable changes to IO Convert are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-26
+
+A redesign around the cyanotype theme, a light theme and faster navigation.
+
 ### Added
 
 - Light theme ("print": cream paper, blue ink) next to the dark "darkroom" theme, with a System option that follows Windows. The window frame follows the theme.
@@ -34,6 +38,13 @@ All notable changes to IO Convert are listed here. The format follows
 
 - Converting a video without sound to audio now says the file has no audio track instead of showing the raw FFmpeg log.
 - The screenshot mode used for development no longer clashes with an already open copy of the app.
+- Switching tools during a batch conversion no longer loses the job list.
+- Drawing a signature works with pens and inputs that cannot be captured.
+- The command palette finds every PDF tool when you search for "pdf".
+
+### Docs
+
+- New README screenshots in both themes, made from generated demo files (`npm run shots`).
 
 ## [1.0.0] - 2026-11-26
 
@@ -54,5 +65,6 @@ First public release.
 - Release builds hide the reload and DevTools shortcuts.
 - Electron fuses disable `ELECTRON_RUN_AS_NODE`, `NODE_OPTIONS` and the Node inspector flags, so the installed app cannot be used as a general Node.js runtime.
 
-[Unreleased]: https://github.com/sm3th/io-convert/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/sm3th/io-convert/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/sm3th/io-convert/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/sm3th/io-convert/releases/tag/v1.0.0

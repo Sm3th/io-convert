@@ -15,7 +15,7 @@ A private alternative to online converters: images, video, audio, documents, spr
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-6fb6ff)
 
-<img src="docs/screenshots/convert-batch.png" alt="Batch conversion of eight files of different types" width="860" />
+<img src="docs/screenshots/hero.png" alt="A batch of eight files converted, shown in the dark and the light theme" width="860" />
 
 **[Download for Windows](https://github.com/sm3th/io-convert/releases/latest)**
 
@@ -35,7 +35,7 @@ Free online converters ask you to upload contracts, IDs and invoices to servers 
 
 ### Convert anything
 
-Drop in a mixed batch and choose a target format for each file, or set one for all of them. Files are processed two at a time, with live progress and a cancel button.
+Drop in a mixed batch anywhere on the window and choose a target format for each file, or set one for all of them. Files are processed two at a time, with live progress and a cancel button. The batch keeps running while you use another tool, and a notice tells you when it is done.
 
 | From | To |
 |---|---|
@@ -75,7 +75,19 @@ Password-protected PDFs work in every tool: the app asks for the password once a
 </tr>
 </table>
 
-The interface is available in **English and Turkish**. It picks the language from your system and you can switch it in Settings.
+### Made to feel at home
+
+- **Two themes:** a dark "darkroom" and a light "print" theme in cream and blue, or follow the Windows setting.
+- **Command palette:** press <kbd>Ctrl</kbd> <kbd>K</kbd> to jump to any tool, switch the theme or the language.
+- **Keyboard friendly:** shortcuts for page tools (<kbd>R</kbd> rotate, <kbd>Del</kbd> delete, <kbd>Ctrl</kbd> <kbd>D</kbd> duplicate) and full keyboard control of menus.
+- **English and Turkish:** picked from your system and switchable at any time. Saved files are named in the same language.
+
+<table>
+<tr>
+<td><img src="docs/screenshots/palette.png" alt="Command palette" /></td>
+<td><img src="docs/screenshots/themes.png" alt="Theme picker in Settings" /></td>
+</tr>
+</table>
 
 ## Getting started
 
@@ -94,6 +106,7 @@ npm run dev          # start with hot reload
 | `npm test` | Run the conversion and PDF test suite (Vitest) |
 | `npm run typecheck` | Run strict TypeScript over main, preload and renderer |
 | `npm run e2e` | Click through every screen of the built app and check the files it writes |
+| `npm run shots` | Regenerate the README screenshots from generated demo files |
 | `npm run dist:win` | Build a Windows installer into `dist/` |
 
 **Optional:** install [LibreOffice](https://www.libreoffice.org/download/) to enable DOC, ODT, RTF and PowerPoint conversion. IO Convert finds it automatically and also uses it for higher-fidelity Word → PDF output.
@@ -143,7 +156,9 @@ tests/                 end-to-end service tests and i18n tests (48)
 
 ## Design
 
-The visual direction is a **cyanotype darkroom**: Prussian-blue ink surfaces, paper-white type and cyan accents. Work in progress shows as an amber "developing" stripe that settles into cyan when a job is done. Headings use *Bricolage Grotesque* and the interface uses *Instrument Sans*. The only ambient motion is the format ticker on the start screen, and it is turned off when the system asks for reduced motion.
+The visual direction is the **cyanotype**, the blue sun-print. The dark theme is the darkroom: Prussian-blue surfaces and paper-white type. The light theme is the print itself: cream paper and blue ink. Work in progress shows as an amber "developing" stripe; a finished file "exposes" and its check mark draws itself. Empty screens carry faint fern silhouettes like the photograms of early cyanotype books, drawn in code.
+
+Colors are defined once as role tokens (canvas, panel, text, accent…) in `src/renderer/src/styles.css`, so both themes share every component. Each file family has its own calm hue, used for icons and format menus. Headings use *Bricolage Grotesque* and the interface uses *Instrument Sans*. All motion respects the system's reduced-motion setting.
 
 ## Roadmap
 

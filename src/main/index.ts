@@ -92,20 +92,27 @@ async function runScreenshots(win: BrowserWindow): Promise<void> {
     dir: string
     shots: { name: string; page: string; files?: string[]; wait?: number; script?: string; after?: number; lang?: string; theme?: string; width?: number }[]
   }
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+  // A step that hangs or throws costs that one shot, never the whole run.
+  const step = <T,>(p: Promise<T>, ms: number) => Promise.race([p, sleep(ms)]).catch((e) => console.error(e))
+  const page = join(__dirname, '../renderer/index.html')
   for (const s of plan.shots) {
     win.setContentSize(s.width ?? 1320, 840)
     const query: Record<string, string> = { page: s.page }
     if (s.files) query.demo = JSON.stringify(s.files)
-    await win.loadFile(join(__dirname, '../renderer/index.html'), { query })
-    await new Promise((r) => setTimeout(r, 400)) // let the app persist its own settings first
-    await win.webContents.executeJavaScript(
-      `localStorage.setItem('io-convert:settings', JSON.stringify({ lang: '${s.lang ?? 'en'}', theme: '${s.theme ?? 'dark'}', outDir: '' })); true`
+    await step(win.loadFile(page, { query }), 15000)
+    await sleep(400) // let the app persist its own settings first
+    await step(
+      win.webContents.executeJavaScript(
+        `localStorage.setItem('io-convert:settings', JSON.stringify({ lang: '${s.lang ?? 'en'}', theme: '${s.theme ?? 'dark'}', outDir: '' })); true`
+      ),
+      5000
     )
-    await win.loadFile(join(__dirname, '../renderer/index.html'), { query })
-    await new Promise((r) => setTimeout(r, s.wait ?? 1500))
+    await step(win.loadFile(page, { query }), 15000)
+    await sleep(s.wait ?? 1500)
     if (s.script) {
-      await win.webContents.executeJavaScript(s.script)
-      await new Promise((r) => setTimeout(r, s.after ?? 900))
+      await step(win.webContents.executeJavaScript(s.script), 300000)
+      await sleep(s.after ?? 900)
     }
     // capturePage never settles while the window is minimized, so bring it
     // back first and give up on a shot rather than hang the whole run.

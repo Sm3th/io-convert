@@ -83,7 +83,8 @@ export function CommandPalette({ open, onClose, onPage }: { open: boolean; onClo
       label: t(i.label),
       hint: g ? t(g) : '',
       icon: i.icon,
-      hay: norm(`${t(i.label)} ${i.label} ${g ? `${t(g)} ${g}` : ''} ${i.keywords ?? ''}`),
+      // every tool in a group works on PDFs, so "pdf" finds them all
+      hay: norm(`${t(i.label)} ${i.label} ${g ? `${t(g)} ${g} pdf` : ''} ${i.keywords ?? ''}`),
       run: () => onPage(i.id)
     }))
     const actions: Entry[] = [

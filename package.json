@@ -1,7 +1,7 @@
 {
   "name": "io-convert",
   "productName": "IO Convert",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Private, offline file converter and PDF toolkit for the desktop.",
   "keywords": [
     "electron",
@@ -39,6 +39,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "e2e": "npm run build && node scripts/e2e/run.mjs",
+    "shots": "npm run build && node scripts/shots/run.mjs",
     "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:linux": "npm run build && electron-builder --linux"

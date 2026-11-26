@@ -39,6 +39,15 @@ const TOOLS: { id: Tool; label: string; icon: LucideIcon }[] = [
   { id: 'rect', label: 'White-out', icon: Eraser }
 ]
 
+/** Keeps a drag going outside the element; some pens cannot be captured, and dragging still works then. */
+function capture(el: HTMLElement, pointerId: number) {
+  try {
+    el.setPointerCapture(pointerId)
+  } catch {
+    /* not capturable */
+  }
+}
+
 async function toPng(blob: Blob): Promise<{ bytes: Uint8Array; w: number; h: number; url: string }> {
   const bmp = await createImageBitmap(blob)
   const c = document.createElement('canvas')
@@ -101,7 +110,11 @@ function SignaturePad({ open, onClose, onUse }: { open: boolean; onClose: () => 
         style={{ cursor: 'crosshair' }}
         onPointerDown={(e) => {
           drawing.current = true
-          ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+          try {
+            ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+          } catch {
+            /* some pens and synthetic pointers cannot be captured: drawing still works */
+          }
           const ctx = ref.current!.getContext('2d')!
           const [x, y] = pos(e)
           ctx.beginPath()
@@ -432,7 +445,7 @@ export function Editor() {
                     setSel(it.id)
                     if (editing === it.id) return
                     drag.current = { id: it.id, mode: 'move', sx: e.clientX, sy: e.clientY, orig: it }
-                    stage.current!.setPointerCapture(e.pointerId)
+                    capture(stage.current!, e.pointerId)
                   }}
                   onDoubleClick={() => it.kind === 'text' && setEditing(it.id)}
                   className={cx('absolute', editing === it.id ? 'cursor-text' : 'cursor-move', sel === it.id && 'outline outline-2 outline-offset-2 outline-cyan')}
@@ -465,7 +478,7 @@ export function Editor() {
                       onPointerDown={(e) => {
                         e.stopPropagation()
                         drag.current = { id: it.id, mode: 'resize', sx: e.clientX, sy: e.clientY, orig: it }
-                        stage.current!.setPointerCapture(e.pointerId)
+                        capture(stage.current!, e.pointerId)
                       }}
                     />
                   )}
