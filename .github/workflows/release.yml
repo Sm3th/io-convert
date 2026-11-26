@@ -24,7 +24,7 @@ jobs:
       # electron-builder sees the tag and tries to publish too, which fails
       # without a GH_TOKEN.
       - run: npm run dist:win -- --publish never
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: dist/*Setup*.exe
           generate_release_notes: true
