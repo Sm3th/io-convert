@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'motion/react'
 import { RotateCcw, RotateCw, Copy, Trash2, Undo2, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/api'
 import { uid } from '@/lib/format'
@@ -7,6 +8,7 @@ import { useDemoFiles, useOutDir, usePdfFile, useTask } from '@/lib/hooks'
 import { Button, DropTarget, ErrorNote, IconButton, PageHeader, Panel, SavedFile, cx, Spinner } from '@/components/ui'
 import { EmptyDrop, usePdfDoc } from '@/components/PdfTool'
 import { Thumb } from '@/components/Thumb'
+import { iconFor } from '@/components/Sidebar'
 
 interface Item {
   key: string
@@ -34,6 +36,27 @@ export function Organize() {
     task.clear()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picker.file])
+
+  // Keyboard: R / Shift+R rotate, Del removes, Ctrl+D duplicates, Ctrl+A selects all.
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement
+      if (el.closest('input, textarea, [role=dialog], [role=listbox]')) return
+      const mod = e.ctrlKey || e.metaKey
+      if (mod && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        setSelected(new Set(items.map((i) => i.key)))
+      } else if (!selected.size) return
+      else if (mod && e.key.toLowerCase() === 'd') {
+        e.preventDefault()
+        duplicate()
+      } else if (!mod && e.key.toLowerCase() === 'r') rotate(e.shiftKey ? -90 : 90)
+      else if (e.key === 'Delete' || e.key === 'Backspace') remove()
+      else if (e.key === 'Escape') setSelected(new Set())
+    }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  })
 
   const targets = (key?: string) => (key && !selected.has(key) ? new Set([key]) : selected)
 
@@ -90,6 +113,7 @@ export function Organize() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader
+        icon={iconFor('Organize pages')}
         title={t('Organize pages')}
         description={t('Reorder, rotate, duplicate or delete pages. Drag to rearrange.')}
         actions={
@@ -109,20 +133,20 @@ export function Organize() {
       {!picker.file ? (
         <EmptyDrop onFiles={(p) => picker.load(p[0])} onPick={picker.pick} title={t('Drop a PDF here')} button={t('Choose a PDF')} />
       ) : (
-        <DropTarget onFiles={(p) => picker.load(p[0])} className="flex min-h-0 flex-1 flex-col">
+        <DropTarget accept={['pdf']} onFiles={(p) => picker.load(p[0])} className="flex min-h-0 flex-1 flex-col">
           <Panel className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex h-12 items-center gap-1 border-b border-line px-3">
               <span className="mr-3 pl-2 text-[13px] text-faded">{sel ? t('{n} selected', { n: sel }) : t('{n} pages', { n: items.length })}</span>
-              <IconButton label={t('Rotate left')} disabled={!sel} onClick={() => rotate(-90)}>
+              <IconButton label={t('Rotate left')} shortcut="Shift R" disabled={!sel} onClick={() => rotate(-90)}>
                 <RotateCcw size={16} />
               </IconButton>
-              <IconButton label={t('Rotate right')} disabled={!sel} onClick={() => rotate(90)}>
+              <IconButton label={t('Rotate right')} shortcut="R" disabled={!sel} onClick={() => rotate(90)}>
                 <RotateCw size={16} />
               </IconButton>
-              <IconButton label={t('Duplicate')} disabled={!sel} onClick={() => duplicate()}>
+              <IconButton label={t('Duplicate')} shortcut="Ctrl D" disabled={!sel} onClick={() => duplicate()}>
                 <Copy size={16} />
               </IconButton>
-              <IconButton label={t('Delete')} disabled={!sel} onClick={() => remove()} className="hover:text-coral">
+              <IconButton label={t('Delete')} shortcut="Del" disabled={!sel} onClick={() => remove()} className="hover:text-coral">
                 <Trash2 size={16} />
               </IconButton>
               <span className="mx-2 h-5 w-px bg-line" />
@@ -134,14 +158,15 @@ export function Organize() {
               </Button>
             </div>
             <div
-              className="min-h-0 flex-1 overflow-y-auto bg-ink/40 p-6"
+              className="dot-grid min-h-0 flex-1 overflow-y-auto p-6"
               onClick={(e) => e.target === e.currentTarget && setSelected(new Set())}
             >
               <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-5 gap-y-7">
                 {doc &&
                   items.map((it, pos) => (
+                    <motion.div key={it.key} layout="position" transition={{ type: 'spring', stiffness: 480, damping: 38 }}>
                     <div
-                      key={it.key}
+                      data-testid="page-card"
                       draggable
                       onDragStart={(e) => {
                         setDragKey(it.key)
@@ -187,6 +212,7 @@ export function Organize() {
                         {it.index !== pos && <span className="text-dim"> · {t('Page {n}', { n: it.index + 1 })}</span>}
                       </span>
                     </div>
+                    </motion.div>
                   ))}
               </div>
             </div>

@@ -7,6 +7,7 @@ import { useT } from '@/lib/settings'
 import { useDemoFiles, type PickedPdf, type usePdfFile } from '@/lib/hooks'
 import { Button, DropTarget, ErrorNote, PageHeader, Panel } from './ui'
 import { Thumb } from './Thumb'
+import { iconFor } from './Sidebar'
 
 export function usePdfDoc(file: PickedPdf | null): PdfDoc | null {
   const [doc, setDoc] = useState<PdfDoc | null>(null)
@@ -32,20 +33,34 @@ export function usePdfDoc(file: PickedPdf | null): PdfDoc | null {
   return doc
 }
 
-export function EmptyDrop({ onFiles, onPick, title, button, icon }: { onFiles: (p: string[]) => void; onPick: () => void; title: string; button: string; icon?: ReactNode }) {
+export function EmptyDrop({
+  onFiles,
+  onPick,
+  title,
+  button,
+  icon,
+  accept = ['pdf']
+}: {
+  onFiles: (p: string[]) => void
+  onPick: () => void
+  title: string
+  button: string
+  icon?: ReactNode
+  accept?: string[]
+}) {
   const t = useT()
   const hint = t('Files stay on this computer')
   return (
-    <DropTarget onFiles={onFiles} className="h-full rounded-[var(--radius-card)] transition-shadow" activeClassName="ring-2 ring-cyan">
+    <DropTarget onFiles={onFiles} accept={accept} className="h-full rounded-[var(--radius-card)]" activeClassName="ring-2 ring-cyan">
       <button
         onClick={onPick}
-        className="group flex h-full min-h-[340px] w-full flex-col items-center justify-center gap-4 rounded-[var(--radius-card)] border border-dashed border-line-strong bg-[radial-gradient(90%_70%_at_50%_0%,#16306355_0%,transparent_70%)] bg-panel/40 transition-colors hover:border-cyan/60 hover:bg-panel/70"
+        className="group flex h-full min-h-[340px] w-full flex-col items-center justify-center gap-4 rounded-[var(--radius-card)] border border-dashed border-line-strong bg-[radial-gradient(90%_70%_at_50%_0%,color-mix(in_srgb,var(--color-glow)_40%,transparent)_0%,transparent_70%)] bg-panel/40 transition-colors hover:border-cyan/60 hover:bg-panel/70"
       >
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-raised text-cyan transition-transform duration-300 group-hover:-translate-y-0.5">
           {icon ?? <FileText size={24} strokeWidth={1.6} />}
         </span>
         <span className="font-display text-2xl font-medium">{title}</span>
-        <span className="inline-flex h-9 items-center rounded-lg bg-cyan px-4 text-[13px] font-semibold text-ink shadow-[0_6px_20px_-8px_#6fb6ffaa]">{button}</span>
+        <span className="inline-flex h-9 items-center rounded-lg bg-cyan px-4 text-[13px] font-semibold text-on-accent shadow-glow">{button}</span>
         <span className="text-xs text-dim">{hint}</span>
       </button>
     </DropTarget>
@@ -120,7 +135,7 @@ export function PdfTool({
   useDemoFiles((p) => void picker.load(p[0]))
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title={t(title)} description={t(description)} />
+      <PageHeader icon={iconFor(title)} title={t(title)} description={t(description)} />
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] gap-6">
         <div className="min-h-0 space-y-4 overflow-y-auto pb-6">
           {picker.error && <ErrorNote message={picker.error} onClose={() => picker.setError(null)} />}
@@ -128,7 +143,7 @@ export function PdfTool({
             main ? (
               main(picker.file)
             ) : (
-              <DropTarget onFiles={(p) => picker.load(p[0])}>
+              <DropTarget accept={['pdf']} onFiles={(p) => picker.load(p[0])}>
                 <FileSummary file={picker.file} doc={doc} onChange={picker.pick} />
               </DropTarget>
             )

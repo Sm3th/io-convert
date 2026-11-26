@@ -2,47 +2,122 @@
 @import "@fontsource-variable/bricolage-grotesque";
 @import "@fontsource-variable/instrument-sans";
 
-/* Cyanotype darkroom: prussian ink, paper-white type, cyan exposure,
-   amber "developing" for work in progress. */
-@theme {
+/*
+ * Cyanotype: the app borrows from the blue sun-print. Two themes share one set
+ * of role names, so components never pick raw colors:
+ *
+ *   ink        canvas (the page everything sits on)
+ *   panel      cards and side panels        raised  hover / selected fills
+ *   sidebar    navigation column            stage   editor backdrop
+ *   line       hairlines                    line-strong  stronger borders
+ *   paper      main text                    faded / dim  secondary text
+ *   cyan       accent ("exposed")           amber  work in progress ("developing")
+ *   coral      errors                       mint   success
+ *   on-accent  text placed on cyan or amber
+ *
+ * Dark is the "darkroom" (prussian ink, paper-white type). Light is the
+ * "print": cream paper with prussian-blue ink.
+ */
+/* static: emit every token, also those only used from inline styles (category colors). */
+@theme static {
   --color-ink: #0d1830;
   --color-panel: #12213f;
   --color-raised: #192b4f;
+  --color-sidebar: #0b1529;
+  --color-stage: #0a1326;
   --color-line: #253a64;
   --color-line-strong: #34508a;
   --color-paper: #edf2fb;
   --color-faded: #93a3c4;
   --color-dim: #64779d;
   --color-cyan: #6fb6ff;
+  --color-cyan-hover: #8cc5ff;
   --color-cyan-deep: #2f7fe0;
   --color-amber: #f4b860;
+  --color-amber-deep: #e9a446;
   --color-coral: #ff7a6b;
   --color-mint: #7fe0b8;
+  --color-on-accent: #0d1830;
+  --color-scrim: #050b18;
+  --color-glow: #163063;
+
+  /* one calm hue per file family */
+  --color-cat-image: #6fb6ff;
+  --color-cat-video: #ff8f7e;
+  --color-cat-audio: #7fe0b8;
+  --color-cat-document: #c9d6ee;
+  --color-cat-sheet: #8fd694;
+  --color-cat-pdf: #f4b860;
 
   --font-display: "Bricolage Grotesque Variable", "Segoe UI", sans-serif;
   --font-sans: "Instrument Sans Variable", "Segoe UI", system-ui, sans-serif;
 
   --radius-card: 14px;
+
+  --shadow-glow: 0 6px 20px -8px color-mix(in srgb, var(--color-cyan) 70%, transparent);
+  --shadow-pop: 0 18px 50px -18px #000c, 0 2px 6px -2px #0006;
+  --shadow-page: 0 1px 0 #0003, 0 8px 20px -10px #000c;
+  --shadow-sheet: 0 20px 60px -20px #000;
+
+  --ease-out-soft: cubic-bezier(.2, .7, .2, 1);
+}
+
+:root { color-scheme: dark; }
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-ink: #f2eee3;
+  --color-panel: #fbf9f3;
+  --color-raised: #e9e3d3;
+  --color-sidebar: #ebe5d5;
+  --color-stage: #e3dcc9;
+  --color-line: #ddd5c1;
+  --color-line-strong: #c2b69b;
+  --color-paper: #13254b;
+  --color-faded: #4d5b7b;
+  --color-dim: #7a849b;
+  --color-cyan: #1d5fbf;
+  --color-cyan-hover: #2b6fd2;
+  --color-cyan-deep: #164c9a;
+  --color-amber: #b9700f;
+  --color-amber-deep: #a3620b;
+  --color-coral: #c4412f;
+  --color-mint: #1e8558;
+  --color-on-accent: #fbf9f3;
+  --color-scrim: #1a2238;
+  --color-glow: #d9e3f2;
+
+  --color-cat-image: #1d5fbf;
+  --color-cat-video: #c4412f;
+  --color-cat-audio: #1e8558;
+  --color-cat-document: #4d5b7b;
+  --color-cat-sheet: #2f7d3a;
+  --color-cat-pdf: #b9700f;
+
+  --shadow-pop: 0 18px 50px -20px #13254b55, 0 2px 6px -2px #13254b22;
+  --shadow-page: 0 0 0 1px #13254b14, 0 6px 16px -10px #13254b40;
+  --shadow-sheet: 0 0 0 1px #13254b14, 0 18px 44px -26px #13254b66;
 }
 
 @layer base {
-html, body, #root { height: 100%; }
-body {
-  margin: 0;
-  background: var(--color-ink);
-  color: var(--color-paper);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  user-select: none;
-  overflow: hidden;
-}
-input, textarea, select, button { font: inherit; color: inherit; }
-input, textarea { user-select: text; }
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    overflow: hidden;
+  }
+  input, textarea, select, button { font: inherit; color: inherit; }
+  input, textarea { user-select: text; }
+  :focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 2px; border-radius: 6px; }
 }
 
-/* Faint paper grain behind everything — the one texture in the app. */
+/* Faint paper grain behind everything: the one texture in the app. */
 .grain::before {
   content: "";
   position: fixed;
@@ -52,13 +127,16 @@ input, textarea { user-select: text; }
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   z-index: 0;
 }
+:root[data-theme="light"] .grain::before { opacity: .09; mix-blend-mode: multiply; }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 .drag { -webkit-app-region: drag; }
 .no-drag { -webkit-app-region: no-drag; }
 
-@layer base {
-  :focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 2px; border-radius: 6px; }
-}
+/* Theme switches cross-fade instead of snapping. */
+.theme-fade, .theme-fade * { transition: background-color .25s, border-color .25s, color .25s !important; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
@@ -84,9 +162,9 @@ input[type="range"]::-webkit-slider-thumb {
   height: 16px;
   margin-top: -5.5px;
   border-radius: 50%;
-  background: var(--color-paper);
+  background: var(--color-panel);
   border: 3px solid var(--color-cyan);
-  box-shadow: 0 2px 8px -2px #000a;
+  box-shadow: 0 2px 8px -2px #0008;
   transition: transform .15s;
 }
 input[type="range"]:hover::-webkit-slider-thumb,
@@ -97,24 +175,40 @@ input[type="range"]:focus-visible { outline-offset: 4px; }
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
-/* Page enter: a short rise, skipped under reduced motion (rule below). */
+::selection { background: color-mix(in srgb, var(--color-cyan) 35%, transparent); }
+
+/* Page enter: a short rise. */
 @keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.page-in { animation: page-in .28s cubic-bezier(.2,.7,.2,1) both; }
+.page-in { animation: page-in .28s var(--ease-out-soft) both; }
 
 /* Result cards settle in. */
 @keyframes pop-in { from { opacity: 0; transform: translateY(4px) scale(.985); } to { opacity: 1; transform: none; } }
-.pop-in { animation: pop-in .3s cubic-bezier(.2,.7,.2,1) both; }
+.pop-in { animation: pop-in .3s var(--ease-out-soft) both; }
 
-::selection { background: color-mix(in srgb, var(--color-cyan) 35%, transparent); }
+/* Loading placeholder: a slow light sweep. */
+@keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+.skeleton {
+  background: linear-gradient(100deg, var(--color-raised) 30%, color-mix(in srgb, var(--color-raised) 40%, var(--color-line-strong)) 50%, var(--color-raised) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
 
 /* Progress "developing": amber sweep that settles into cyan when done. */
 @keyframes develop { from { background-position: 0 0; } to { background-position: 40px 0; } }
 .developing {
-  background-image: repeating-linear-gradient(115deg, var(--color-amber) 0 12px, #e9a446 12px 20px);
+  background-image: repeating-linear-gradient(115deg, var(--color-amber) 0 12px, var(--color-amber-deep) 12px 20px);
   background-size: 40px 100%;
   animation: develop .9s linear infinite;
 }
+
+/* Editor backdrop: a faint dot grid, like a cutting mat. */
+.dot-grid {
+  background-color: var(--color-stage);
+  background-image: radial-gradient(color-mix(in srgb, var(--color-line-strong) 55%, transparent) 1px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .developing { animation: none; }
+  .developing, .skeleton { animation: none; }
   *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
 }

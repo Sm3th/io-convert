@@ -93,6 +93,7 @@ npm run dev          # start with hot reload
 | `npm run dev` | Run the app in development mode |
 | `npm test` | Run the conversion and PDF test suite (Vitest) |
 | `npm run typecheck` | Run strict TypeScript over main, preload and renderer |
+| `npm run e2e` | Click through every screen of the built app and check the files it writes |
 | `npm run dist:win` | Build a Windows installer into `dist/` |
 
 **Optional:** install [LibreOffice](https://www.libreoffice.org/download/) to enable DOC, ODT, RTF and PowerPoint conversion. IO Convert finds it automatically and also uses it for higher-fidelity Word → PDF output.
@@ -137,7 +138,7 @@ src/
 │  ├─ components/      UI kit, PDF tool layout, thumbnails
 │  └─ lib/             PDF.js helpers, i18n (EN/TR), hooks
 └─ shared/formats.ts   format matrix and IPC types, used by both sides
-tests/                 end-to-end service tests and i18n tests (47)
+tests/                 end-to-end service tests and i18n tests (48)
 ```
 
 ## Design

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Reorder, useDragControls } from 'motion/react'
 import { ArrowUp, ArrowDown, X, Plus, FileText, Image as ImageIcon, GripVertical } from 'lucide-react'
 import { api } from '@/lib/api'
 import { bytes, fileName, uid } from '@/lib/format'
@@ -6,6 +7,7 @@ import { useT, useTe } from '@/lib/settings'
 import { useAskPassword, useDemoFiles, useOutDir, useTask } from '@/lib/hooks'
 import { Button, DropTarget, ErrorNote, Field, IconButton, PageHeader, Panel, SavedFile, Segmented, cx, Spinner } from '@/components/ui'
 import { EmptyDrop } from '@/components/PdfTool'
+import { iconFor } from '@/components/Sidebar'
 
 interface Entry {
   key: string
@@ -100,53 +102,67 @@ function useEntries(kind: 'pdf' | 'image') {
   return { entries, setEntries, add, pick, move, error, setError }
 }
 
+/** Colors that tell merged files apart in the list and the page bar. */
+const STACK = ['var(--color-cyan)', 'var(--color-amber)', 'var(--color-mint)', 'var(--color-coral)', 'var(--color-cat-sheet)', 'var(--color-faded)']
+const stackColor = (i: number) => STACK[i % STACK.length]
+
 function EntryList({ list, kind }: { list: ReturnType<typeof useEntries>; kind: 'pdf' | 'image' }) {
-  const t = useT()
-  const [drag, setDrag] = useState<number | null>(null)
   return (
-    <ul className="divide-y divide-line/70">
+    <Reorder.Group axis="y" values={list.entries} onReorder={list.setEntries} as="ul">
       {list.entries.map((e, i) => (
-        <li
-          key={e.key}
-          draggable
-          onDragStart={() => setDrag(i)}
-          onDragOver={(ev) => {
-            if (drag === null || drag === i) return
-            ev.preventDefault()
-            list.move(drag, i - drag)
-            setDrag(i)
-          }}
-          onDragEnd={() => setDrag(null)}
-          className={cx('flex items-center gap-3 px-4 py-3', drag === i && 'bg-raised/70')}
-        >
-          <GripVertical size={15} className="cursor-grab text-dim" />
-          <span className="w-6 text-right text-xs tabular-nums text-dim">{i + 1}</span>
-          {kind === 'image' ? (
-            <ImagePreview path={e.path} />
-          ) : (
-            <span className="flex h-11 w-11 items-center justify-center rounded-md border border-line bg-raised text-cyan">
-              <FileText size={17} />
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13.5px] font-medium">{fileName(e.path)}</p>
-            <p className="text-xs text-faded">
-              {e.pages !== undefined && <>{t('{n} pages', { n: e.pages })} · </>}
-              {bytes(e.size)}
-            </p>
-          </div>
-          <IconButton label={t('Move up')} disabled={i === 0} onClick={() => list.move(i, -1)}>
-            <ArrowUp size={15} />
-          </IconButton>
-          <IconButton label={t('Move down')} disabled={i === list.entries.length - 1} onClick={() => list.move(i, 1)}>
-            <ArrowDown size={15} />
-          </IconButton>
-          <IconButton label={t('Remove')} onClick={() => list.setEntries((es) => es.filter((x) => x.key !== e.key))}>
-            <X size={15} />
-          </IconButton>
-        </li>
+        <EntryRow key={e.key} entry={e} index={i} list={list} kind={kind} />
       ))}
-    </ul>
+    </Reorder.Group>
+  )
+}
+
+function EntryRow({ entry: e, index: i, list, kind }: { entry: Entry; index: number; list: ReturnType<typeof useEntries>; kind: 'pdf' | 'image' }) {
+  const t = useT()
+  const controls = useDragControls()
+  return (
+    <Reorder.Item
+      value={e}
+      dragListener={false}
+      dragControls={controls}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      whileDrag={{ scale: 1.015, boxShadow: 'var(--shadow-pop)', zIndex: 5 }}
+      className="relative flex items-center gap-3 border-b border-line/70 bg-panel px-4 py-3 last:border-b-0"
+    >
+      <span
+        className="flex h-8 w-5 cursor-grab touch-none items-center justify-center text-dim hover:text-faded active:cursor-grabbing"
+        onPointerDown={(ev) => controls.start(ev)}
+        aria-hidden="true"
+      >
+        <GripVertical size={15} />
+      </span>
+      <span className="w-5 text-right text-xs tabular-nums text-dim">{i + 1}</span>
+      {kind === 'image' ? (
+        <ImagePreview path={e.path} />
+      ) : (
+        <span className="relative flex h-11 w-11 items-center justify-center rounded-md border border-line bg-raised text-cyan">
+          <FileText size={17} />
+          <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full ring-2 ring-panel" style={{ background: stackColor(i) }} />
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13.5px] font-medium">{fileName(e.path)}</p>
+        <p className="text-xs text-faded">
+          {e.pages !== undefined && <>{t('{n} pages', { n: e.pages })} · </>}
+          {bytes(e.size)}
+        </p>
+      </div>
+      <IconButton label={t('Move up')} disabled={i === 0} onClick={() => list.move(i, -1)}>
+        <ArrowUp size={15} />
+      </IconButton>
+      <IconButton label={t('Move down')} disabled={i === list.entries.length - 1} onClick={() => list.move(i, 1)}>
+        <ArrowDown size={15} />
+      </IconButton>
+      <IconButton label={t('Remove')} onClick={() => list.setEntries((es) => es.filter((x) => x.key !== e.key))}>
+        <X size={15} />
+      </IconButton>
+    </Reorder.Item>
   )
 }
 
@@ -166,12 +182,12 @@ function ListLayout({
   const t = useT()
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title={t(title)} description={t(description)} />
+      <PageHeader icon={iconFor(title)} title={t(title)} description={t(description)} />
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] gap-6">
         <div className="min-h-0 space-y-4 overflow-y-auto pb-6">
           {list.error && <ErrorNote message={list.error} onClose={() => list.setError(null)} />}
           {list.entries.length ? (
-            <DropTarget onFiles={list.add} className="rounded-[var(--radius-card)]">
+            <DropTarget accept={kind === 'pdf' ? ['pdf'] : IMAGE_EXTS} onFiles={list.add} className="rounded-[var(--radius-card)]">
               <Panel className="overflow-hidden">
                 <EntryList list={list} kind={kind} />
                 <div className="border-t border-line p-3">
@@ -183,6 +199,7 @@ function ListLayout({
             </DropTarget>
           ) : (
             <EmptyDrop
+              accept={kind === 'pdf' ? ['pdf'] : IMAGE_EXTS}
               onFiles={list.add}
               onPick={list.pick}
               title={t(kind === 'pdf' ? 'Drop PDFs here' : 'Drop images here')}
@@ -222,6 +239,13 @@ export function Merge() {
           <div>
             <p className="font-display text-4xl font-semibold tabular-nums">{total}</p>
             <p className="text-[13px] text-faded">{t('Pages')}</p>
+            {total > 0 && (
+              <div className="mt-3 flex h-2.5 gap-[3px] overflow-hidden rounded-full" aria-hidden="true">
+                {list.entries.map((e, i) => (
+                  <span key={e.key} className="h-full rounded-sm transition-[flex-grow] duration-500" style={{ flexGrow: e.pages ?? 0, background: stackColor(i) }} />
+                ))}
+              </div>
+            )}
           </div>
           <Button variant="primary" className="h-10 w-full" disabled={list.entries.length < 2 || task.busy} onClick={run}>
             {task.busy ? <><Spinner />{t('Working…')}</> : t('Merge PDFs')}

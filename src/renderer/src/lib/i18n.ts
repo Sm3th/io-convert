@@ -15,6 +15,34 @@ const tr: Record<string, string> = {
   unlocked: 'şifresiz',
   edited: 'güncellenmiş',
   searchable: 'aranabilir',
+  'Previous page': 'Önceki sayfa',
+  'Next page': 'Sonraki sayfa',
+  // convert
+  All: 'Tümü',
+  'Convert all to…': 'Hepsini dönüştür…',
+  'Convert to': 'Hedef biçim',
+  'Show list': 'Listeyi göster',
+  '{n} files converted': '{n} dosya dönüştürüldü',
+  '{done} converted, {failed} failed': '{done} dönüştürüldü, {failed} başarısız',
+  'No options for these files.': 'Bu dosyalar için ayar yok.',
+  // shell
+  'Drop to add {n} files': 'Bırakın, {n} dosya eklensin',
+  'Drop to add the file': 'Bırakın, dosya eklensin',
+  'Search tools…': 'Araçlarda ara…',
+  'Switch to light theme': 'Açık temaya geç',
+  'Switch to dark theme': 'Koyu temaya geç',
+  Appearance: 'Görünüm',
+  'Nothing matches': 'Eşleşen bir şey yok',
+  'to move': 'gezin',
+  'to open': 'aç',
+  Theme: 'Tema',
+  Reset: 'Sıfırla',
+  System: 'Sistem',
+  'Dark mode': 'Koyu',
+  'Light mode': 'Açık',
+  'Follows your Windows setting': 'Windows ayarınızı izler',
+  'Darkroom: prussian blue': 'Karanlık oda: prusya mavisi',
+  'Print: cream paper, blue ink': 'Baskı: krem kâğıt, mavi mürekkep',
   // navigation
   Convert: 'Dönüştür',
   'PDF tools': 'PDF araçları',
@@ -291,6 +319,9 @@ const trErrorPatterns: [RegExp, string][] = [
 ]
 
 export type Lang = 'en' | 'tr'
+
+/** True when the key has Turkish copy (used by the completeness test). */
+export const hasTurkish = (key: string): boolean => Object.prototype.hasOwnProperty.call(tr, key)
 const dicts: Record<Lang, Record<string, string>> = { en: {}, tr }
 
 export function translate(lang: Lang, key: string, vars?: Record<string, string | number>): string {

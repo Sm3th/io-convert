@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { translate, translateError } from '../src/renderer/src/lib/i18n'
+import { readdirSync, readFileSync } from 'fs'
+import { join } from 'path'
+import { hasTurkish, translate, translateError } from '../src/renderer/src/lib/i18n'
+
+const RENDERER = join(__dirname, '../src/renderer/src')
 
 describe('translate', () => {
   it('uses Turkish copy and fills variables', () => {
@@ -27,5 +31,29 @@ describe('translateError', () => {
   it('leaves English and unknown messages untouched', () => {
     expect(translateError('en', 'Cancelled')).toBe('Cancelled')
     expect(translateError('tr', 'EACCES: permission denied')).toBe('EACCES: permission denied')
+  })
+})
+
+describe('Turkish copy is complete', () => {
+  // Every string the renderer passes through t(), plus the labels and headings
+  // that reach t() indirectly (navigation, tool layouts).
+  const used = new Map<string, string>()
+  for (const file of readdirSync(RENDERER, { recursive: true }) as string[]) {
+    if (!file.endsWith('.tsx')) continue
+    const src = readFileSync(join(RENDERER, file), 'utf8')
+    const patterns = [
+      /\bt\(\s*'((?:[^'\\]|\\.)*)'/g,
+      /\b(?:label|group|hint|title|description): '([^']+)'/g,
+      /\b(?:title|description)="([^"]+)"/g
+    ]
+    for (const re of patterns) for (const m of src.matchAll(re)) used.set(m[1].replace(/\\'/g, "'"), file)
+  }
+  // Names that read the same in every language.
+  const universal = /^(English|Türkçe|Polski|Deutsch|PDF|A4|Letter|\d.*|[\d\s/]+|.* \+ .*|4K \(2160p\))$/
+
+  it('has a translation for every UI string', () => {
+    expect(used.size).toBeGreaterThan(150) // the scan itself found the UI strings
+    const missing = [...used].filter(([k]) => !hasTurkish(k) && !universal.test(k)).map(([k, f]) => `${k}  (${f})`)
+    expect(missing).toEqual([])
   })
 })

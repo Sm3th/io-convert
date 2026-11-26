@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ScanText, X, Plus } from 'lucide-react'
+import { animate } from 'motion/react'
+import { ScanText, X, Plus, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { api, isPasswordError } from '@/lib/api'
 import { bytes, fileName, uid } from '@/lib/format'
 import { useT } from '@/lib/settings'
@@ -25,10 +26,28 @@ import {
 } from '@/components/ui'
 import { EmptyDrop, FileSummary, PdfTool, usePdfDoc } from '@/components/PdfTool'
 import { Thumb } from '@/components/Thumb'
-import { OcrLangSelect } from './Convert'
+import { iconFor } from '@/components/Sidebar'
+import { FileTile, OcrLangSelect } from './Convert'
 import type { PageNumberOptions, WatermarkOptions } from '@shared/formats'
 
 type Saved = { output: string; size: number }
+
+/** Renders text with a number that counts up from 0 in place of the NUL mark. */
+function CountUpText({ text, to }: { text: string; to: number }) {
+  const [v, setV] = useState(0)
+  useEffect(() => {
+    const c = animate(0, to, { duration: 0.9, ease: [0.2, 0.7, 0.2, 1], onUpdate: (x) => setV(Math.round(x)) })
+    return () => c.stop()
+  }, [to])
+  const [before, after] = text.split('\u0000')
+  return (
+    <>
+      {before}
+      <span className="tabular-nums">{v}</span>
+      {after}
+    </>
+  )
+}
 
 function ActionButton({ busy, disabled, onClick, children }: { busy: boolean; disabled?: boolean; onClick: () => void; children: ReactNode }) {
   const t = useT()
@@ -40,23 +59,39 @@ function ActionButton({ busy, disabled, onClick, children }: { busy: boolean; di
 }
 
 /** Large first-page preview with an overlay, for tools that stamp pages. */
-function StampPreview({ picker, overlay }: { picker: ReturnType<typeof usePdfFile>; overlay: ReactNode }) {
+function StampPreview({ picker, overlay }: { picker: ReturnType<typeof usePdfFile>; overlay: (page: number) => ReactNode }) {
   const t = useT()
   const doc = usePdfDoc(picker.file)
+  const [page, setPage] = useState(0)
+  const pages = picker.file?.info.pages ?? 0
+  useEffect(() => setPage(0), [picker.file])
   if (!picker.file) return null
   return (
-    <DropTarget onFiles={(p) => picker.load(p[0])}>
+    <DropTarget accept={['pdf']} onFiles={(p) => picker.load(p[0])}>
       <Panel className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-3">
-          <p className="truncate text-[13.5px] font-medium">{fileName(picker.file.path)}</p>
-          <Button variant="quiet" onClick={picker.pick}>
+        <div className="flex items-center gap-3 border-b border-line px-5 py-3">
+          <p className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{fileName(picker.file.path)}</p>
+          {pages > 1 && (
+            <div className="flex items-center gap-1 text-xs tabular-nums text-faded">
+              <IconButton label={t('Previous page')} disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                <ChevronLeft size={16} />
+              </IconButton>
+              <span className="w-12 text-center">
+                {page + 1} / {pages}
+              </span>
+              <IconButton label={t('Next page')} disabled={page >= pages - 1} onClick={() => setPage((p) => p + 1)}>
+                <ChevronRight size={16} />
+              </IconButton>
+            </div>
+          )}
+          <Button variant="quiet" icon={<RefreshCw size={14} />} onClick={picker.pick}>
             {t('Change file')}
           </Button>
         </div>
-        <div className="flex justify-center bg-ink/40 py-8">
-          <div className="relative overflow-hidden">
-            {doc ? <Thumb doc={doc} page={0} width={360} /> : <div className="h-[509px] w-[360px]" />}
-            <div className="pointer-events-none absolute inset-0">{overlay}</div>
+        <div className="dot-grid flex justify-center py-8">
+          <div className="relative overflow-hidden rounded-[3px]">
+            {doc ? <Thumb key={page} doc={doc} page={page} width={360} /> : <div className="skeleton h-[509px] w-[360px] rounded-[3px]" />}
+            <div className="pointer-events-none absolute inset-0">{overlay(page)}</div>
           </div>
         </div>
       </Panel>
@@ -173,7 +208,7 @@ export function Compress() {
           <div className="space-y-3">
             <div className="pop-in rounded-xl border border-line bg-ink/50 p-4">
               <p className={cx('font-display font-semibold', pct > 0 ? 'text-3xl text-cyan' : 'text-xl text-paper')}>
-                {pct > 0 ? t('{pct}% smaller', { pct }) : t('Already as small as it gets')}
+                {pct > 0 ? <CountUpText text={t('{pct}% smaller', { pct: '\u0000' })} to={pct} /> : t('Already as small as it gets')}
               </p>
               <div className="mt-4 space-y-2.5 text-xs">
                 {[
@@ -220,7 +255,7 @@ export function Watermark() {
       main={() => (
         <StampPreview
           picker={picker}
-          overlay={
+          overlay={() => (
             <div className="flex h-full items-center justify-center">
               <span
                 className="whitespace-nowrap font-bold"
@@ -235,7 +270,7 @@ export function Watermark() {
                 {o.text}
               </span>
             </div>
-          }
+          )}
         />
       )}
       options={
@@ -297,7 +332,10 @@ export function PageNumbers() {
   const set = (p: Partial<PageNumberOptions>) => setO((x) => ({ ...x, ...p }))
   const total = (picker.file?.info.pages ?? 1) + o.start - 1
   const pageWord = t('Page')
-  const label = o.format === 'n-of-total' ? `${o.start} / ${total}` : o.format === 'page-n' ? `${pageWord} ${o.start}` : `${o.start}`
+  const label = (page: number) => {
+    const n = o.start + page
+    return o.format === 'n-of-total' ? `${n} / ${total}` : o.format === 'page-n' ? `${pageWord} ${n}` : `${n}`
+  }
   async function run() {
     const out = await api.outputPath(picker.file!.path, 'pdf', outDir, ` — ${t('numbered')}`)
     await task.run(() => api.pageNumbers(picker.file!.path, { ...o, pageWord }, out, picker.file!.password))
@@ -316,11 +354,11 @@ export function PageNumbers() {
       main={() => (
         <StampPreview
           picker={picker}
-          overlay={
+          overlay={(page) => (
             <span className={cx('absolute rounded bg-amber/25 px-1 text-[#333] outline outline-1 outline-amber', pos[o.position])} style={{ fontSize: `${(o.size * 360) / 595}px`, fontFamily: 'Arial, sans-serif' }}>
-              {label}
+              {label(page)}
             </span>
-          }
+          )}
         />
       )}
       options={
@@ -477,7 +515,7 @@ export function Properties() {
       picker={picker}
       main={(file: PickedPdf) => (
         <div className="space-y-4">
-          <DropTarget onFiles={(p) => picker.load(p[0])}>
+          <DropTarget accept={['pdf']} onFiles={(p) => picker.load(p[0])}>
             <FileSummary file={file} doc={null} onChange={picker.pick} showPages={0} />
           </DropTarget>
           <Panel className="grid grid-cols-2 gap-x-8 gap-y-4 p-5 text-[13px]">
@@ -578,16 +616,16 @@ export function Ocr() {
   }
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title={t('Text recognition')} description={t('Read text from scans and photos. Make PDFs searchable.')} />
+      <PageHeader icon={iconFor('Text recognition')} title={t('Text recognition')} description={t('Read text from scans and photos. Make PDFs searchable.')} />
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] gap-6">
         <div className="min-h-0 overflow-y-auto pb-6">
           {files.length ? (
-            <DropTarget onFiles={add} className="rounded-[var(--radius-card)]">
+            <DropTarget accept={OCR_EXTS} onFiles={add} className="rounded-[var(--radius-card)]">
               <Panel className="overflow-hidden">
                 <ul className="divide-y divide-line/70">
                   {files.map((f) => (
                     <li key={f.key} className="flex items-center gap-3 px-4 py-3">
-                      <ScanText size={16} className="text-cyan" />
+                      <FileTile category={f.path.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'} size={32} />
                       <p className="min-w-0 flex-1 truncate text-[13.5px]">{fileName(f.path)}</p>
                       <span className="text-xs text-dim">{bytes(f.size)}</span>
                       <IconButton label={t('Remove')} onClick={() => setFiles((fs) => fs.filter((x) => x.key !== f.key))}>
@@ -604,7 +642,7 @@ export function Ocr() {
               </Panel>
             </DropTarget>
           ) : (
-            <EmptyDrop onFiles={add} onPick={pick} title={t('Drop scans here')} button={t('Choose files')} icon={<ScanText size={24} strokeWidth={1.6} />} />
+            <EmptyDrop accept={OCR_EXTS} onFiles={add} onPick={pick} title={t('Drop scans here')} button={t('Choose files')} icon={<ScanText size={24} strokeWidth={1.6} />} />
           )}
         </div>
         <aside className="min-h-0 overflow-y-auto pb-6">

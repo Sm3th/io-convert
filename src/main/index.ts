@@ -34,19 +34,32 @@ setHtmlPrinter(async (htmlFile, output, pageSize) => {
 
 let mainWindow: BrowserWindow | null = null
 
+/** Frame colors that match the renderer's two themes (styles.css). */
+function frameColors() {
+  return nativeTheme.shouldUseDarkColors
+    ? { color: '#0d1830', symbolColor: '#c9d6ee' }
+    : { color: '#f2eee3', symbolColor: '#13254b' }
+}
+
+function syncFrame(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const c = frameColors()
+  mainWindow.setBackgroundColor(c.color)
+  if (process.platform !== 'darwin') mainWindow.setTitleBarOverlay({ ...c, height: 40 })
+}
+
 function createWindow(): void {
-  nativeTheme.themeSource = 'dark'
   mainWindow = new BrowserWindow({
     width: 1320,
     height: 860,
     minWidth: 1020,
     minHeight: 680,
     show: false,
-    backgroundColor: '#0d1830',
+    backgroundColor: frameColors().color,
     title: 'IO Convert',
     icon: join(resourcesDir, 'icon.png'),
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#0d1830', symbolColor: '#c9d6ee', height: 40 },
+    titleBarOverlay: { ...frameColors(), height: 40 },
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       // The preload only uses contextBridge, ipcRenderer and webUtils, which are
@@ -77,16 +90,16 @@ function createWindow(): void {
 async function runScreenshots(win: BrowserWindow): Promise<void> {
   const plan = JSON.parse(await readFile(process.env['IO_SHOT_PLAN']!, 'utf8')) as {
     dir: string
-    shots: { name: string; page: string; files?: string[]; wait?: number; script?: string; after?: number; lang?: string }[]
+    shots: { name: string; page: string; files?: string[]; wait?: number; script?: string; after?: number; lang?: string; theme?: string; width?: number }[]
   }
-  win.setContentSize(1320, 840)
   for (const s of plan.shots) {
+    win.setContentSize(s.width ?? 1320, 840)
     const query: Record<string, string> = { page: s.page }
     if (s.files) query.demo = JSON.stringify(s.files)
     await win.loadFile(join(__dirname, '../renderer/index.html'), { query })
     await new Promise((r) => setTimeout(r, 400)) // let the app persist its own settings first
     await win.webContents.executeJavaScript(
-      `localStorage.setItem('io-convert:settings', JSON.stringify({ lang: '${s.lang ?? 'en'}', outDir: '' })); true`
+      `localStorage.setItem('io-convert:settings', JSON.stringify({ lang: '${s.lang ?? 'en'}', theme: '${s.theme ?? 'dark'}', outDir: '' })); true`
     )
     await win.loadFile(join(__dirname, '../renderer/index.html'), { query })
     await new Promise((r) => setTimeout(r, s.wait ?? 1500))
@@ -175,6 +188,10 @@ function registerIpc(): void {
   )
   handle('shell:show', (_e, path: string) => shell.showItemInFolder(path))
   handle('shell:open', (_e, path: string) => shell.openPath(path))
+  handle('app:theme', (_e, theme: 'system' | 'dark' | 'light') => {
+    nativeTheme.themeSource = ['system', 'dark', 'light'].includes(theme) ? theme : 'system'
+    syncFrame()
+  })
   handle('app:env', () => ({
     office: !!findOffice(),
     version: app.getVersion(),
@@ -239,6 +256,7 @@ app.whenReady().then(() => {
   if (app.isPackaged && process.platform !== 'darwin') Menu.setApplicationMenu(null)
   registerIpc()
   createWindow()
+  nativeTheme.on('updated', syncFrame)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

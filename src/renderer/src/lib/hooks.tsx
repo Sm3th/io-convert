@@ -4,6 +4,7 @@ import { api, isPasswordError, type PdfInfo } from './api'
 import { useSettings, useT } from './settings'
 import { Button, Modal, inputCls } from '@/components/ui'
 import { fileName } from './format'
+import { usePageActive } from './drop'
 
 // ---------------------------------------------------------------------------
 // Password prompt, available anywhere through askPassword()
@@ -160,8 +161,9 @@ export function useTask<R>() {
  */
 export function useDemoFiles(load: (paths: string[]) => void) {
   const done = useRef(false)
+  const active = usePageActive()
   useEffect(() => {
-    if (done.current) return
+    if (done.current || !active) return
     const raw = new URLSearchParams(location.search).get('demo')
     if (!raw) return
     done.current = true

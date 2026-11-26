@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PdfDoc } from '@/lib/pdfjs'
-import { renderToCanvas } from '@/lib/pdfjs'
+import { api } from '@/lib/api'
+import { openPdf, renderToCanvas, type PdfDoc } from '@/lib/pdfjs'
+import { cx } from './ui'
 
 /** Lazily renders one PDF page when it scrolls into view. */
 export function Thumb({ doc, page, width, rotate = 0 }: { doc: PdfDoc; page: number; width: number; rotate?: number }) {
@@ -27,8 +28,38 @@ export function Thumb({ doc, page, width, rotate = 0 }: { doc: PdfDoc; page: num
   return (
     <canvas
       ref={ref}
-      className="block rounded-[3px] bg-white shadow-[0_1px_0_#0003,0_8px_20px_-10px_#000c] transition-opacity duration-300"
-      style={{ width, height: ready ? undefined : width * 1.414, opacity: ready ? 1 : 0.15 }}
+      className={cx('block rounded-[3px] shadow-page', ready ? 'bg-white' : 'skeleton')}
+      style={{ width, height: ready ? undefined : width * 1.414 }}
     />
   )
+}
+
+/**
+ * First page of a file the app just wrote, for result cards. Renders nothing
+ * when the file cannot be opened without a password.
+ */
+export function OutputThumb({ path, width = 54 }: { path: string; width?: number }) {
+  const [doc, setDoc] = useState<PdfDoc | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let alive = true
+    let opened: PdfDoc | null = null
+    setDoc(null)
+    setFailed(false)
+    api
+      .read(path)
+      .then((b) => openPdf(b))
+      .then((d) => {
+        opened = d
+        if (alive) setDoc(d)
+        else void d.loadingTask.destroy()
+      })
+      .catch(() => alive && setFailed(true))
+    return () => {
+      alive = false
+      void opened?.loadingTask.destroy()
+    }
+  }, [path])
+  if (failed) return null
+  return doc ? <Thumb doc={doc} page={0} width={width} /> : <div className="skeleton rounded-[3px]" style={{ width, height: width * 1.414 }} />
 }

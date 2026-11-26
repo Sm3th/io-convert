@@ -18,9 +18,10 @@ import { uid } from '@/lib/format'
 import { useT } from '@/lib/settings'
 import { useDemoFiles, useOutDir, usePdfFile, useTask } from '@/lib/hooks'
 import { renderToCanvas, type PdfDoc } from '@/lib/pdfjs'
-import { Button, DropTarget, ErrorNote, IconButton, Modal, PageHeader, Panel, SavedFile, cx, Spinner } from '@/components/ui'
+import { Button, DropTarget, ErrorNote, IconButton, Modal, PageHeader, Panel, SavedFile, Select, cx, Spinner } from '@/components/ui'
 import { EmptyDrop, usePdfDoc } from '@/components/PdfTool'
 import { Thumb } from '@/components/Thumb'
+import { iconFor } from '@/components/Sidebar'
 import { ColorRow } from './Tools'
 
 type Tool = 'select' | 'text' | 'signature' | 'image' | 'highlight' | 'rect'
@@ -304,7 +305,7 @@ export function Editor() {
   if (!picker.file || !doc) {
     return (
       <div className="flex h-full flex-col">
-        <PageHeader title={t('Edit & sign')} description={t('Add text, your signature, images, highlights or white-out.')} />
+        <PageHeader icon={iconFor('Edit & sign')} title={t('Edit & sign')} description={t('Add text, your signature, images, highlights or white-out.')} />
         {picker.error && <ErrorNote message={picker.error} onClose={() => picker.setError(null)} />}
         <EmptyDrop onFiles={(p) => picker.load(p[0])} onPick={picker.pick} title={t('Drop a PDF here')} button={t('Choose a PDF')} />
       </div>
@@ -316,6 +317,7 @@ export function Editor() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader
+        icon={iconFor('Edit & sign')}
         title={t('Edit & sign')}
         description={t('Add text, your signature, images, highlights or white-out.')}
         actions={
@@ -380,22 +382,18 @@ export function Editor() {
                   colors={['#111111', '#1f5fbf', '#c62828']}
                   small
                 />
-                <select
-                  className="h-8 rounded-md border border-line bg-ink px-2 text-[13px]"
-                  value={selected?.kind === 'text' ? Math.round(selected.fontSize! * pageHeightPt.current) : fontPt}
-                  onChange={(e) => {
-                    const v = Number(e.target.value)
+                <Select
+                  small
+                  label={t('Size')}
+                  className="w-[84px]"
+                  value={String(selected?.kind === 'text' ? Math.round(selected.fontSize! * pageHeightPt.current) : fontPt)}
+                  onChange={(raw) => {
+                    const v = Number(raw)
                     setFontPt(v)
                     if (selected?.kind === 'text') patch(selected.id, { fontSize: v / pageHeightPt.current })
                   }}
-                  aria-label={t('Size')}
-                >
-                  {[8, 10, 12, 14, 18, 24, 32, 48].map((s) => (
-                    <option key={s} value={s}>
-                      {s} pt
-                    </option>
-                  ))}
-                </select>
+                  options={[8, 10, 12, 14, 18, 24, 32, 48].map((n) => ({ value: String(n), label: `${n} pt` }))}
+                />
               </div>
             )}
             <div className="ml-auto flex items-center gap-1">
@@ -417,13 +415,13 @@ export function Editor() {
           {/* stage */}
           <div
             ref={stage}
-            className={cx('relative min-h-0 flex-1 overflow-auto bg-[#0a1326] p-8', tool !== 'select' && 'cursor-crosshair')}
+            className={cx('relative min-h-0 flex-1 overflow-auto dot-grid p-8', tool !== 'select' && 'cursor-crosshair')}
             onPointerDown={onStageDown}
             onPointerMove={onStageMove}
             onPointerUp={onStageUp}
           >
-            {hint && <p className="pointer-events-none sticky top-0 z-20 mx-auto mb-3 w-fit rounded-full bg-amber px-3 py-1 text-xs font-medium text-ink">{hint}</p>}
-            <div data-page className="relative mx-auto w-fit shadow-[0_20px_60px_-20px_#000]">
+            {hint && <p className="pointer-events-none sticky top-0 z-20 mx-auto mb-3 w-fit rounded-full bg-amber px-3 py-1 text-xs font-medium text-on-accent">{hint}</p>}
+            <div data-page className="relative mx-auto w-fit shadow-sheet">
               <PageCanvas doc={doc} page={page} width={width} onSize={onSize} />
               {current.map((it) => (
                 <div

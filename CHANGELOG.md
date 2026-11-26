@@ -8,6 +8,16 @@ All notable changes to IO Convert are listed here. The format follows
 
 ### Added
 
+- Light theme ("print": cream paper, blue ink) next to the dark "darkroom" theme, with a System option that follows Windows. The window frame follows the theme.
+- Command palette (Ctrl+K) to jump to any tool, switch theme or language.
+- Files can be dropped anywhere on the window; files the current tool cannot use open in Convert.
+- Convert keeps running when you switch to another tool and shows a notice when the batch finishes.
+- Themed dropdowns with grouped, color-coded formats; tooltips with keyboard shortcuts.
+- Organize pages: keyboard shortcuts (R, Shift+R, Del, Ctrl+D, Ctrl+A) and animated reordering.
+- Merge: drag to reorder with a handle, and a page bar that shows each file's share.
+- Watermark and page numbers: preview any page, not just the first.
+- Result cards show the first page of the saved PDF.
+- `npm run e2e`: drives every screen of the built app and checks the files it writes.
 - Thumbnails for HEIC and TIFF images in Images to PDF.
 - Overall progress bar while a batch converts.
 - Supported-format overview on the Convert start screen.
